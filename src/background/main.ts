@@ -149,17 +149,6 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     console.log('[Background] Pre-capturing screenshot');
     (async () => {
       try {
-        // Check if we have the necessary permissions
-        const hasPermission = await chrome.permissions.contains({
-          origins: ['<all_urls>']
-        });
-
-        if (!hasPermission) {
-          console.warn('[Background] Missing host permissions for screenshot');
-          sendResponse({ success: false, error: 'Missing permissions. Please grant host permissions in extension settings.' });
-          return;
-        }
-
         const { dataUrl } = await captureVisibleTab();
         const tabId = sender.tab?.id;
         if (tabId) {
