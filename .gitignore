@@ -8,3 +8,4 @@ dist/
 *.swo
 *~
 .claude/
+test.html
