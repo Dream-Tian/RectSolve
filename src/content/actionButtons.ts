@@ -56,7 +56,7 @@ export class ActionButtons {
           transform: translateY(-50%);
           z-index: 2147483646;
           font-family: KaiTi, "楷体", STKaiti, serif;
-          transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: right 0.8s cubic-bezier(0.4, 0, 0.2, 1), left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #rectsolve-action-buttons.on-left {
