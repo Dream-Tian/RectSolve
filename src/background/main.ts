@@ -306,7 +306,8 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
 
       const croppedBlob = await cropScreenshot(dataUrl, rect, dpr);
       const imageDataUrl = await blobToDataUrl(croppedBlob);
-      const result = await callVisionChatCompletion(config, imageDataUrl, DEFAULT_PROMPT);
+      const prompt = config.systemPrompt?.trim() || DEFAULT_PROMPT;
+      const result = await callVisionChatCompletion(config, imageDataUrl, prompt);
 
       const response: CaptureResponse = { success: true, markdown: result, imageDataUrl };
       sendResponse(response);

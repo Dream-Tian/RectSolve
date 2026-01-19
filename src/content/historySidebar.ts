@@ -5,7 +5,8 @@ const STORAGE_KEYS = {
   DEFAULT_MODEL: 'defaultModel',
   POSITION: 'position',
   THEME: 'theme',
-  SMART_SELECTION: 'smartSelection'
+  SMART_SELECTION: 'smartSelection',
+  SYSTEM_PROMPT: 'systemPrompt'
 } as const;
 
 // Config cache to reduce storage reads
@@ -16,6 +17,7 @@ let configCache: {
   position: string;
   theme: string;
   smartSelection: boolean;
+  systemPrompt: string;
 } | null = null;
 
 async function getConfig() {
@@ -29,7 +31,8 @@ async function getConfig() {
     STORAGE_KEYS.DEFAULT_MODEL,
     STORAGE_KEYS.POSITION,
     STORAGE_KEYS.THEME,
-    STORAGE_KEYS.SMART_SELECTION
+    STORAGE_KEYS.SMART_SELECTION,
+    STORAGE_KEYS.SYSTEM_PROMPT
   ]);
 
   configCache = {
@@ -38,13 +41,14 @@ async function getConfig() {
     defaultModel: result[STORAGE_KEYS.DEFAULT_MODEL] || '',
     position: result[STORAGE_KEYS.POSITION] || 'right',
     theme: result[STORAGE_KEYS.THEME] || 'light',
-    smartSelection: result[STORAGE_KEYS.SMART_SELECTION] !== false // Default to true
+    smartSelection: result[STORAGE_KEYS.SMART_SELECTION] !== false,
+    systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || ''
   };
 
   return configCache;
 }
 
-async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean }) {
+async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string }) {
   const toSave: Record<string, string | boolean> = {};
 
   if (config.baseUrl !== undefined) {
@@ -64,6 +68,9 @@ async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultMo
   }
   if (config.smartSelection !== undefined) {
     toSave[STORAGE_KEYS.SMART_SELECTION] = config.smartSelection;
+  }
+  if (config.systemPrompt !== undefined) {
+    toSave[STORAGE_KEYS.SYSTEM_PROMPT] = config.systemPrompt;
   }
 
   await chrome.storage.sync.set(toSave);
@@ -353,6 +360,7 @@ export class HistorySidebar {
         .rectsolve-dark-theme .rectsolve-sidebar #stats-first-use { color: #e5e7eb !important; }
         .rectsolve-dark-theme .rectsolve-sidebar [style*="background: #f9fafb"] { background: #374151 !important; border-color: #4b5563 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar [style*="color: #6b7280"] { color: #9ca3af !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar textarea { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
       </style>
       <div class="sidebar-header">
         <div class="sidebar-title">RectSolve</div>
@@ -454,6 +462,13 @@ export class HistorySidebar {
           <button id="settings-fetch" disabled style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
             获取模型
           </button>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">自定义 Prompt</label>
+          <textarea id="settings-system-prompt" rows="4"
+            placeholder="留空使用默认 Prompt。示例：你是一个耐心的老师，请用简单易懂的语言解释..."
+            style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
         </div>
 
        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
@@ -559,6 +574,15 @@ export class HistorySidebar {
     if (baseUrlInput) baseUrlInput.value = config.baseUrl || '';
     if (apiKeyInput) apiKeyInput.value = config.apiKey || '';
     if (smartSelectionCheckbox) smartSelectionCheckbox.checked = smartSelectionEnabled;
+
+    // Load and auto-save system prompt
+    const systemPromptTextarea = body.querySelector('#settings-system-prompt') as HTMLTextAreaElement;
+    if (systemPromptTextarea) {
+      systemPromptTextarea.value = config.systemPrompt || '';
+      this.addEventListener(systemPromptTextarea, 'blur', async () => {
+        await saveConfig({ systemPrompt: systemPromptTextarea.value.trim() });
+      });
+    }
 
     // Load and display statistics
     const statsTotalEl = body.querySelector('#stats-total') as HTMLElement;
