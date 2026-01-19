@@ -348,6 +348,11 @@ export class HistorySidebar {
         .rectsolve-dark-theme .shortcuts-container { background: #1f2937 !important; border-color: #4b5563 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar span { color: #9ca3af !important; }
         .rectsolve-dark-theme .rectsolve-sidebar label { color: #e5e7eb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar #stats-total { color: #60a5fa !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar #stats-today { color: #34d399 !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar #stats-first-use { color: #e5e7eb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar [style*="background: #f9fafb"] { background: #374151 !important; border-color: #4b5563 !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar [style*="color: #6b7280"] { color: #9ca3af !important; }
       </style>
       <div class="sidebar-header">
         <div class="sidebar-title">RectSolve</div>
@@ -509,6 +514,23 @@ export class HistorySidebar {
            </div>
         </div>
 
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 15px; text-align: left;">使用统计</label>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+            <div style="text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-total" style="font-size: 24px; font-weight: 700; color: #2563eb;">0</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">累计解题</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-today" style="font-size: 24px; font-weight: 700; color: #10b981;">0</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">今日解题</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-first-use" style="font-size: 14px; font-weight: 600; color: #374151;">-</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">首次使用</div>
+            </div>
+          </div>
+        </div>
 
         <div id="settings-status" style="margin-top: 10px; padding: 10px; border-radius: 6px; display: none; font-size: 14px;"></div>
       </div>
@@ -537,6 +559,34 @@ export class HistorySidebar {
     if (baseUrlInput) baseUrlInput.value = config.baseUrl || '';
     if (apiKeyInput) apiKeyInput.value = config.apiKey || '';
     if (smartSelectionCheckbox) smartSelectionCheckbox.checked = smartSelectionEnabled;
+
+    // Load and display statistics
+    const statsTotalEl = body.querySelector('#stats-total') as HTMLElement;
+    const statsTodayEl = body.querySelector('#stats-today') as HTMLElement;
+    const statsFirstUseEl = body.querySelector('#stats-first-use') as HTMLElement;
+    
+    const loadStats = async () => {
+      try {
+        const result = await chrome.storage.local.get('rectsolve_stats');
+        if (result.rectsolve_stats) {
+          const stats = JSON.parse(result.rectsolve_stats);
+          const today = new Date().toISOString().split('T')[0];
+          
+          if (statsTotalEl) statsTotalEl.textContent = stats.totalCount || '0';
+          if (statsTodayEl) {
+            // Show today's count only if date matches
+            statsTodayEl.textContent = stats.todayDate === today ? (stats.todayCount || '0') : '0';
+          }
+          if (statsFirstUseEl && stats.firstUseDate) {
+            // Format date as YYYY/MM/DD
+            statsFirstUseEl.textContent = stats.firstUseDate.replace(/-/g, '/');
+          }
+        }
+      } catch (error) {
+        console.error('[HistorySidebar] Failed to load stats:', error);
+      }
+    };
+    loadStats();
 
     if (smartSelectionCheckbox) {
       this.addEventListener(smartSelectionCheckbox, 'change', async () => {

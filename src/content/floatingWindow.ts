@@ -591,8 +591,44 @@ export class FloatingWindow {
       // Keep only last 10 items
       const trimmed = history.slice(0, 10);
       await chrome.storage.local.set({ rectsolve_history: JSON.stringify(trimmed) });
+      
+      // Update statistics
+      await this.updateStats();
     } catch (error) {
       console.error('[FloatingWindow] Failed to save history:', error);
+    }
+  }
+
+  private async updateStats() {
+    try {
+      const result = await chrome.storage.local.get('rectsolve_stats');
+      const stats = result.rectsolve_stats ? JSON.parse(result.rectsolve_stats) : {
+        totalCount: 0,
+        todayCount: 0,
+        todayDate: '',
+        firstUseDate: ''
+      };
+
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+      // Reset today count if date changed
+      if (stats.todayDate !== today) {
+        stats.todayCount = 0;
+        stats.todayDate = today;
+      }
+
+      // Increment counts
+      stats.totalCount += 1;
+      stats.todayCount += 1;
+
+      // Set first use date if not set
+      if (!stats.firstUseDate) {
+        stats.firstUseDate = today;
+      }
+
+      await chrome.storage.local.set({ rectsolve_stats: JSON.stringify(stats) });
+    } catch (error) {
+      console.error('[FloatingWindow] Failed to update stats:', error);
     }
   }
 
