@@ -94,15 +94,64 @@ async function renderMathInPageContext(target: HTMLElement): Promise<boolean> {
   });
 }
 
+
+// Helper to escape HTML characters
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function renderMarkdown(markdown: string): Promise<string> {
   console.log('[RectSolve] Rendering markdown...');
 
-  const rawHtml = marked.parse(markdown) as string;
+  // Strategy: Protect math blocks from marked parser
+  // We replace math blocks with placeholders, parse markdown, then restore math
+  const mathBlocks: string[] = [];
+  const placeholderPrefix = "%%%MATH_BLOCK_";
+  const placeholderSuffix = "%%%";
 
-  const cleanHtml = DOMPurify.sanitize(rawHtml, {
+  // Regex to capture:
+  // 1. $$ ... $$ (Display math)
+  // 2. \[ ... \] (Display mathalt)
+  // 3. \( ... \) (Inline math)
+  // 4. $ ... $ (Inline math, careful with this one)
+  // Note: We prioritize finding these before markdown parsing
+  // The regex must handle multi-line content for display math
+  const mathRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|(?<!\\)\$[^$]*?\$)/g;
+
+  const protectedMarkdown = markdown.replace(mathRegex, (match) => {
+    // Store the math content
+    const id = mathBlocks.length;
+    mathBlocks.push(match);
+    return `${placeholderPrefix}${id}${placeholderSuffix}`;
+  });
+
+  const rawHtml = marked.parse(protectedMarkdown) as string;
+
+  let cleanHtml = DOMPurify.sanitize(rawHtml, {
     ALLOWED_TAGS: ['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'code', 'pre', 'img', 'strong', 'em', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span'],
     ALLOWED_ATTR: ['src', 'alt', 'href', 'class', 'style'],
     ALLOWED_URI_REGEXP: /^(https:|data:image\/)/
+  });
+
+  // Restore math blocks
+  // IMPORTANT: We must NOT let the browser parse the math as HTML tags if it contains < or >
+  // But KaTeX expects generated HTML to render into.
+  // Actually, we should just restore the original LaTeX string. 
+  // KaTeX auto-render will look for delimiters in the text content of the element.
+  // However, since we are inserting into innerHTML, we must escape HTML entities 
+  // to prevent XSS and broken HTML, BUT keep the backslashes.
+  
+  cleanHtml = cleanHtml.replace(new RegExp(`${placeholderPrefix}(\\d+)${placeholderSuffix}`, 'g'), (match, idStr) => {
+    const id = parseInt(idStr);
+    const mathContent = mathBlocks[id];
+    // We escape HTML special chars so that < and > don't break the HTML structure
+    // e.g. "x < y" becomes "x &lt; y" which is valid text content
+    return escapeHtml(mathContent);
   });
 
   // Try to load and render KaTeX
