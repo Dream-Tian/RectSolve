@@ -308,7 +308,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       const imageDataUrl = await blobToDataUrl(croppedBlob);
       const result = await callVisionChatCompletion(config, imageDataUrl, DEFAULT_PROMPT);
 
-      const response: CaptureResponse = { success: true, markdown: result };
+      const response: CaptureResponse = { success: true, markdown: result, imageDataUrl };
       sendResponse(response);
     })().catch((err: unknown) => {
       const message = err instanceof Error ? err.message : 'Unexpected error';

@@ -284,6 +284,36 @@ const WINDOW_STYLES = `
   width: 16px;
   height: 16px;
 }
+
+.rs-preview {
+  padding: 12px 20px 0 20px;
+  border-bottom: 1px solid var(--rs-border);
+  background: #f9fafb;
+}
+
+.rs-preview.hidden {
+  display: none;
+}
+
+.rs-preview img {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--rs-border);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.rs-preview img:hover {
+  transform: scale(1.02);
+}
+
+.rs-preview-label {
+  font-size: 12px;
+  color: var(--rs-text-secondary);
+  margin-bottom: 8px;
+}
 `;
 
 export class FloatingWindow {
@@ -334,6 +364,10 @@ export class FloatingWindow {
         </button>
       </div>
       <div class="rs-body">
+        <div class="rs-preview hidden">
+          <div class="rs-preview-label">题目截图</div>
+          <img class="rs-preview-img" src="" alt="题目截图" />
+        </div>
         <div class="rs-loading hidden">
           <svg class="rs-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -462,18 +496,29 @@ export class FloatingWindow {
     this.updateStatus("Processing...");
   }
 
-  public async showContent(markdown: string, saveToHistory: boolean = true) {
+  public async showContent(markdown: string, saveToHistory: boolean = true, imageDataUrl?: string) {
     const loading = this.shadow.querySelector('.rs-loading');
     const content = this.shadow.querySelector('.rs-content');
+    const preview = this.shadow.querySelector('.rs-preview');
+    const previewImg = this.shadow.querySelector('.rs-preview-img') as HTMLImageElement;
+    
     loading?.classList.add('hidden');
     content?.classList.remove('hidden');
+
+    // Show preview image if available
+    if (imageDataUrl && preview && previewImg) {
+      previewImg.src = imageDataUrl;
+      preview.classList.remove('hidden');
+    } else {
+      preview?.classList.add('hidden');
+    }
 
     if (this.contentArea) {
       try {
         this.contentArea.innerHTML = await renderMarkdown(markdown);
         // Save to history only if requested
         if (saveToHistory) {
-          this.saveToHistory(markdown);
+          this.saveToHistory(markdown, imageDataUrl);
         }
       } catch (error) {
         this.contentArea.innerHTML = `<div class="rs-error">渲染错误: ${(error as Error).message}</div>`;
@@ -535,11 +580,12 @@ export class FloatingWindow {
     }
   }
 
-  private async saveToHistory(markdown: string) {
+  private async saveToHistory(markdown: string, imageDataUrl?: string) {
     try {
       const history = await this.getHistory();
       history.unshift({
         markdown,
+        imageDataUrl,
         timestamp: Date.now()
       });
       // Keep only last 10 items
@@ -550,7 +596,7 @@ export class FloatingWindow {
     }
   }
 
-  private async getHistory(): Promise<Array<{ markdown: string; timestamp: number }>> {
+  private async getHistory(): Promise<Array<{ markdown: string; imageDataUrl?: string; timestamp: number }>> {
     try {
       const result = await chrome.storage.local.get('rectsolve_history');
       const data = result.rectsolve_history;

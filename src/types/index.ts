@@ -20,6 +20,7 @@ export interface CaptureRequest {
 export interface CaptureResponse {
   success: boolean;
   markdown?: string;
+  imageDataUrl?: string;
   error?: string;
 }
 

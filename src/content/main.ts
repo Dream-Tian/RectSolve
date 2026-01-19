@@ -69,7 +69,7 @@ function applyTheme(theme: string) {
             }
   
             if (response && response.success && response.markdown) {
-              floatingWindow?.showContent(response.markdown);
+              floatingWindow?.showContent(response.markdown, true, response.imageDataUrl);
               // Refresh history sidebar
               historySidebar?.refresh();
             } else if (response && !response.success && response.error) {
@@ -181,7 +181,7 @@ function applyTheme(theme: string) {
                       return;
                     }
                     if (response && response.success && response.markdown) {
-                      floatingWindow?.showContent(response.markdown);
+                      floatingWindow?.showContent(response.markdown, true, response.imageDataUrl);
                       historySidebar?.refresh();
                     } else if (response && !response.success && response.error) {
                       floatingWindow?.showError(response.error);
