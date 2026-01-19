@@ -232,6 +232,7 @@ const WINDOW_STYLES = `
   border: 1px solid var(--rs-border);
   border-radius: 6px;
   font-size: 13px;
+  font-family: var(--rs-font);
   color: var(--rs-text);
   cursor: pointer;
   transition: all 0.2s;
