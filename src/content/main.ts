@@ -95,7 +95,7 @@ async function init() {
     // On close callback
     actionButtons?.setSidebarOpen(false);
   }, position);
-  historySidebar.show();
+  // historySidebar.show(); // Don't show by default
 
   // Create action buttons
   actionButtons = new ActionButtons({
@@ -111,9 +111,23 @@ async function init() {
       actionButtons?.setSidebarOpen(true);
     }
   }, position);
-  actionButtons.show();
+  // actionButtons.show(); // Don't show by default
 
-  console.log('[RectSolve Content] Initialized with action buttons and history sidebar');
+  console.log('[RectSolve Content] Initialized (UI hidden by default)');
+}
+
+// Toggle UI visibility
+function toggleUI() {
+  if (!actionButtons) return;
+
+  if (actionButtons.isVisible()) {
+    actionButtons.hide();
+    historySidebar?.hide();
+  } else {
+    actionButtons.show();
+    // Ensure sidebar is mounted (but collapsed) so it's ready to slide in
+    historySidebar?.show();
+  }
 }
 
 // Listen for storage changes
@@ -156,12 +170,15 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'COMMAND') {
     console.log('[RectSolve Content] Command received:', message.command);
 
+
     if (message.command === 'start-selection') {
       startSelection();
     } else if (message.command === 'open-history') {
       historySidebar?.expand('history');
       actionButtons?.setSidebarOpen(true);
     }
+  } else if (message.type === 'TOGGLE_UI') {
+    toggleUI();
   }
 });
 

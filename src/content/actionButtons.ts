@@ -183,4 +183,8 @@ export class ActionButtons {
       this.container.classList.remove('sidebar-open');
     }
   }
+
+  public isVisible(): boolean {
+    return !!this.container.parentNode;
+  }
 }

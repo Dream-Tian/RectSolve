@@ -594,6 +594,7 @@ export class HistorySidebar {
   }
 
   public expand(tab: 'history' | 'settings' = 'history') {
+    this.show(); // Ensure it's in the DOM
     this.isExpanded = true;
     this.container.classList.add('expanded');
     this.switchTab(tab);

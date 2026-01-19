@@ -116,21 +116,53 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+
+
 chrome.action.onClicked.addListener(async (tab) => {
   console.log('[RectSolve Background] Extension button clicked', tab.id);
-  console.log('[RectSolve Background] Tab URL:', tab.url);
 
   if (!tab.id) {
     console.error('[RectSolve Background] No tab ID');
     return;
   }
 
-  // Content script is now automatically injected via manifest
-  // Just show a badge to indicate the extension is active
-  chrome.action.setBadgeText({ text: '✓', tabId: tab.id });
-  setTimeout(() => {
-    chrome.action.setBadgeText({ text: '', tabId: tab.id });
-  }, 2000);
+  // Helper to send toggle command
+  const sendToggle = async () => {
+    try {
+      await chrome.tabs.sendMessage(tab.id!, { type: 'TOGGLE_UI' });
+      console.log('[RectSolve Background] Sent TOGGLE_UI to tab', tab.id);
+    } catch (err: any) {
+      console.warn('[RectSolve Background] Failed to send TOGGLE_UI:', err);
+
+      // If content script is missing (e.g. after reload), inject it and retry
+      if (err.message && (err.message.includes('Receiving end does not exist') || err.message.includes('Could not establish connection'))) {
+        console.log('[RectSolve Background] Injecting content script...');
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id! },
+            files: ['content.js']
+          });
+          // Also inject katexBridge if needed (MAIN world)
+          // Note: createScripting cannot easily inject into MAIN world with files in MV3 reliably without correct config,
+          // but our manifest handles it. For dynamic injection, we focused on content.js (ISOLATED).
+
+          // Wait a bit for script to initialize
+          setTimeout(async () => {
+            try {
+              await chrome.tabs.sendMessage(tab.id!, { type: 'TOGGLE_UI' });
+              console.log('[RectSolve Background] Sent TOGGLE_UI after injection');
+            } catch (retryErr) {
+              console.error('[RectSolve Background] Retry failed:', retryErr);
+            }
+          }, 100);
+        } catch (injectErr) {
+          console.error('[RectSolve Background] Script injection failed:', injectErr);
+        }
+      }
+    }
+  };
+
+  await sendToggle();
 });
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
