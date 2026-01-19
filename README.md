@@ -1,89 +1,92 @@
-# RectSolve - AI 题目解答助手
+# RectSolve - AI Problem Solver
 
-RectSolve 是一款功能强大的浏览器扩展，允许用户通过框选网页上的任意题目区域，调用 OpenAI 兼容的 AI 模型（如 GPT-4o, Claude 3.5 Sonnet 等）进行实时解答。结果以精美的悬浮窗形式展示，支持数学公式渲染、历史记录查看和智能交互。
+[English](README.md) | [中文文档](README_zh-CN.md)
 
-## ✨ 核心功能
+RectSolve is a powerful browser extension that allows you to capture any problem area on a webpage and get real-time solutions using OpenAI-compatible vision models (e.g., GPT-4o, Claude 3.5 Sonnet). Results are displayed in a sleek floating window with support for mathematical formula rendering, history management, and smart interaction.
 
-*   **智能框选**：截图并裁剪网页上的题目区域，自动处理高分辨率屏幕 (DPR)。
-*   **AI 解答**：支持任何兼容 OpenAI 接口的模型（需支持视觉输入），实时流式输出 Markdown 格式的解答。
-*   **数学公式渲染**：内置 KaTeX 支持，完美渲染 LaTeX 数学公式。
-*   **历史记录 sidebar**：侧边栏查看过往解题记录，支持搜索、删除和回顾。
-*   **快捷操作**：
-    *   **快捷键支持**：默认 `Shift+Cmd+S` 开启框选，`Shift+Cmd+D` 打开历史记录（可自定义）。
-    *   **浮动按钮**：页面右下角常驻功能入口。
-*   **个性化设置**：
-    *   自定义 API Base URL 和 API Key。
-    *   动态获取并切换 AI 模型。
-    *   **深色模式**：完美适配系统的深色/浅色主题。
-    *   **智能选区**：自动吸附文本元素，精准选区。
+## ✨ Key Features
 
-## 🚀 安装与使用
+*   **Smart Selection**: Capture and crop problem areas on any webpage, with automatic handling for high-DPI screens.
+*   **AI Solutions**: Support for any OpenAI-compatible model with vision capabilities. Streaming Markdown output provides instant feedback.
+*   **Math Rendering**: Built-in KaTeX support ensures perfect rendering of LaTeX mathematical formulas.
+*   **History Sidebar**: Review past solutions, search, delete, and manage your history in a convenient sidebar.
+*   **Quick Actions**:
+    *   **Shortcuts**: Default `Shift+Cmd+S` to start selection, `Shift+Cmd+D` to open history (customizable).
+    *   **Floating Button**: Persistent access point at the bottom right of the page.
+*   **Customization**:
+    *   Customize API Base URL and API Key.
+    *   Dynamically fetch and switch between AI models.
+    *   **Dark Mode**: Seamlessly adapts to system dark/light themes.
+    *   **Smart Snapping**: Automatically snaps selection to text elements for precision.
 
-### 开发环境安装
+## 🚀 Installation
 
-1.  **克隆项目**
+### Development Setup
+
+1.  **Clone the repository**
     ```bash
     git clone https://github.com/your-repo/RectSolve.git
     cd RectSolve
     ```
 
-2.  **安装依赖**
+2.  **Install dependencies**
     ```bash
     npm install
     ```
 
-3.  **构建项目**
+3.  **Build the project**
     ```bash
     npm run build
     ```
-    构建完成后，生成的插件文件位于 `dist/` 目录。
+    After building, the extension files will be in the `dist/` directory.
 
-### 加载到 Chrome
+### Load into Chrome
 
-1.  打开 Chrome 浏览器，访问 `chrome://extensions/`。
-2.  开启右上角的 **"开发者模式" (Developer mode)**。
-3.  点击 **"加载已解压的扩展程序" (Load unpacked)**。
-4.  选择项目根目录下的 **`dist/`** 文件夹。
+1.  Open Chrome and navigate to `chrome://extensions/`.
+2.  Enable **"Developer mode"** in the top right corner.
+3.  Click **"Load unpacked"**.
+4.  Select the **`dist/`** directory in your project root.
 
-## 📖 使用指南
+## 📖 Usage Guide
 
-1.  **配置 API**：
-    *   加载插件后，打开侧边栏（点击右下角图标或使用快捷键）。
-    *   切换到 **设置 (Settings)** 标签。
-    *   输入你的 API Base URL (例如 `https://api.openai.com/v1`) 和 API Key。
-    *   点击 "测试连接" 并选择一个支持视觉的模型（如 `gpt-4o`）。
+1.  **Configure API**:
+    *   Open the sidebar (click the floating icon or use shortcut).
+    *   Switch to the **Settings** tab.
+    *   Enter your API Base URL (e.g., `https://api.openai.com/v1`) and API Key.
+    *   Click "Test Connection" and select a vision-capable model (e.g., `gpt-4o`).
 
-2.  **开始解题**：
-    *   点击右下角的 "裁剪" 图标，或按下快捷键 `Shift+Cmd+S`。
-    *   屏幕变暗后，拖拽鼠标框选题目区域。
-    *   松开鼠标，等待 AI 分析与解答。
+2.  **Solve Problems**:
+    *   Click the "Crop" icon in the floating button or press `Shift+Cmd+S`.
+    *   The screen will dim. Drag to select the problem area.
+    *   Release the mouse and wait for the AI analysis.
 
-3.  **查看历史**：
-    *   点击右下角的 "时钟" 图标，或按下快捷键 `Shift+Cmd+D` 打开侧边栏查看所有记录。
+3.  **View History**:
+    *   Click the "Clock" icon or press `Shift+Cmd+D` to open the sidebar and view all past records.
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-*   **构建工具**: Vite
-*   **语言**: TypeScript
-*   **UI 渲染**: 原生 Web Components / Shadow DOM
-*   **公式渲染**: KaTeX
+*   **Build Tool**: Vite
+*   **Language**: TypeScript
+*   **UI Rendering**: Native Web Components / Shadow DOM
+*   **Math Rendering**: KaTeX
 *   **Markdown**: marked
-*   **代码高亮**: highlight.js
+*   **Highlighter**: highlight.js
+*   **Model Support**: OpenAI Compatible (Vision)
 
-## 📄 目录结构
+## 📄 Directory Structure
 
 ```
 RectSolve/
-├── dist/               # 构建产物 (直接加载这个文件夹)
+├── dist/               # Build output (load this directory)
 ├── src/
-│   ├── background/     # Service Worker (后台逻辑)
-│   ├── content/        # Content Scripts (注入页面的逻辑)
-│   │   ├── historySidebar.ts  # 侧边栏 UI
-│   │   ├── selection.ts       # 截图与框选逻辑
+│   ├── background/     # Service Worker (background logic)
+│   ├── content/        # Content Scripts (injected logic)
+│   │   ├── historySidebar.ts  # Sidebar UI
+│   │   ├── selection.ts       # Screenshot & Selection logic
 │   │   └── ...
-│   ├── options/        # 选项页
-│   └── assets/         # 资源文件
-├── manifest.json       # 扩展配置文件
+│   ├── options/        # Options page
+│   └── assets/         # Static assets
+├── manifest.json       # Extension manifest
 └── ...
 ```
 
