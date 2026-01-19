@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run build)",
+      "mcp__Relace__relace_search",
+      "mcp__codex__codex",
+      "mcp__gemini__gemini",
+      "Skill(collaborating-with-gemini)",
+      "Skill(collaborating-with-codex)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm install:*)",
+      "Bash(awk:*)",
+      "Bash(npm uninstall:*)"
+    ]
+  }
+}

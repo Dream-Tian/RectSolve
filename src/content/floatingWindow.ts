@@ -1,0 +1,552 @@
+import { renderMarkdown } from './renderer';
+
+const WINDOW_STYLES = `
+:host {
+  --rs-primary: #2563eb;
+  --rs-primary-hover: #1d4ed8;
+  --rs-bg: #ffffff;
+  --rs-text: #111827;
+  --rs-text-secondary: #6b7280;
+  --rs-border: #e5e7eb;
+  --rs-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --rs-radius: 12px;
+  --rs-font: KaiTi, "楷体", STKaiti, serif;
+}
+
+.rs-window {
+  position: fixed;
+  width: 500px;
+  max-height: 700px;
+  background: var(--rs-bg);
+  border: 1px solid var(--rs-border);
+  box-shadow: var(--rs-shadow);
+  border-radius: var(--rs-radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  font-family: var(--rs-font);
+}
+
+.rs-window.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rs-header {
+  background: #ffffff;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rs-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.rs-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rs-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--rs-text);
+}
+
+.rs-close-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rs-close-btn:hover {
+  background: #f3f4f6;
+  color: var(--rs-text);
+}
+
+.rs-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  min-height: 100px;
+  position: relative;
+  background: #ffffff;
+}
+
+.rs-content {
+  padding: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--rs-text);
+}
+
+/* Markdown Elements */
+.rs-content p {
+  margin-bottom: 1em;
+  text-indent: 0;
+}
+
+.rs-content h1, .rs-content h2, .rs-content h3 {
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+  color: var(--rs-text);
+  text-indent: 0;
+  line-height: 1.3;
+}
+
+.rs-content h1 { font-size: 1.4em; }
+.rs-content h2 { font-size: 1.2em; }
+.rs-content h3 { font-size: 1.1em; }
+
+.rs-content code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.rs-content pre {
+  background: #f8fafc;
+  border: 1px solid var(--rs-border);
+  color: #334155;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.rs-content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: 13px;
+}
+
+.rs-content img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--rs-border);
+  margin: 1em 0;
+}
+
+.rs-content ul, .rs-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.rs-content li {
+  margin-bottom: 0.4em;
+}
+
+.rs-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 14px;
+}
+
+.rs-content th, .rs-content td {
+  border: 1px solid var(--rs-border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.rs-content th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--rs-text);
+}
+
+/* KaTeX Math */
+.rs-content .katex {
+  font-size: 1.15em;
+}
+
+.rs-content .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+}
+
+.rs-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: var(--rs-text-secondary);
+  gap: 16px;
+}
+
+.hidden { display: none !important; }
+
+.rs-footer {
+  padding: 12px 16px;
+  background: #ffffff;
+  border-top: 1px solid var(--rs-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rs-status {
+  font-size: 13px;
+  color: var(--rs-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.rs-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--rs-border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--rs-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rs-action-btn:hover {
+  background: #f8fafc;
+  border-color: var(--rs-primary);
+  color: var(--rs-primary);
+}
+
+.rs-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rs-spinner {
+  width: 24px;
+  height: 24px;
+  color: var(--rs-primary);
+  animation: rs-spin 1s linear infinite;
+}
+
+@keyframes rs-spin {
+  100% { transform: rotate(360deg); }
+}
+
+.rs-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  color: #ef4444;
+  gap: 12px;
+}
+
+.rs-error-icon {
+  width: 48px;
+  height: 48px;
+  color: #fee2e2;
+  background: #ef4444;
+  border-radius: 50%;
+  padding: 12px;
+}
+
+.rs-icon {
+  width: 16px;
+  height: 16px;
+}
+`;
+
+export class FloatingWindow {
+  private container: HTMLElement;
+  private shadow: ShadowRoot;
+  private contentArea: HTMLElement | null = null;
+  private header: HTMLElement | null = null;
+  private isDragging = false;
+  private dragOffset = { x: 0, y: 0 };
+  private mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
+  private mouseUpHandler: (() => void) | null = null;
+
+  constructor() {
+    this.container = document.createElement('div');
+    this.container.id = 'rect-solve-host';
+    this.container.style.cssText = `
+      position: fixed;
+      z-index: 2147483647;
+      top: 0;
+      left: 0;
+    `;
+
+    this.shadow = this.container.attachShadow({ mode: 'open' });
+    this.renderInitialUI();
+    this.bindEvents();
+  }
+
+  private renderInitialUI() {
+    const style = document.createElement('style');
+    style.textContent = WINDOW_STYLES;
+    this.shadow.appendChild(style);
+
+    const windowEl = document.createElement('div');
+    windowEl.className = 'rs-window';
+    windowEl.innerHTML = `
+      <div class="rs-header">
+        <div class="rs-brand">
+          <svg class="rs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--rs-primary);">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+          </svg>
+          <div class="rs-title">RectSolve AI</div>
+        </div>
+        <button class="rs-close-btn" title="关闭">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="rs-body">
+        <div class="rs-loading hidden">
+          <svg class="rs-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>正在生成回答...</span>
+        </div>
+        <div class="rs-content"></div>
+      </div>
+      <div class="rs-footer">
+        <span class="rs-status">Ready</span>
+        <div class="rs-actions">
+          <button class="rs-action-btn" id="rs-copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            复制
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.shadow.appendChild(windowEl);
+
+    this.contentArea = windowEl.querySelector('.rs-content');
+    this.header = windowEl.querySelector('.rs-header');
+
+    windowEl.querySelector('.rs-close-btn')?.addEventListener('click', () => this.hide());
+    windowEl.querySelector('#rs-copy')?.addEventListener('click', () => this.copyContent());
+  }
+
+  private bindEvents() {
+    if (!this.header) return;
+
+    this.header.addEventListener('mousedown', (e) => {
+      this.isDragging = true;
+      const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+      const rect = win.getBoundingClientRect();
+      this.dragOffset = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    });
+
+    this.mouseMoveHandler = (e: MouseEvent) => {
+      if (!this.isDragging) return;
+      const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+
+      const x = Math.max(0, Math.min(e.clientX - this.dragOffset.x, window.innerWidth - win.offsetWidth));
+      const y = Math.max(0, Math.min(e.clientY - this.dragOffset.y, window.innerHeight - win.offsetHeight));
+
+      win.style.left = `${x}px`;
+      win.style.top = `${y}px`;
+      win.style.transform = 'none';
+    };
+
+    this.mouseUpHandler = () => {
+      this.isDragging = false;
+    };
+
+    window.addEventListener('mousemove', this.mouseMoveHandler);
+    window.addEventListener('mouseup', this.mouseUpHandler);
+  }
+
+  public cleanup() {
+    if (this.mouseMoveHandler) {
+      window.removeEventListener('mousemove', this.mouseMoveHandler);
+      this.mouseMoveHandler = null;
+    }
+    if (this.mouseUpHandler) {
+      window.removeEventListener('mouseup', this.mouseUpHandler);
+      this.mouseUpHandler = null;
+    }
+  }
+
+  public show(x: number, y: number) {
+    if (!this.container.parentNode) {
+      document.body.appendChild(this.container);
+    }
+
+    const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const winWidth = 500;
+    const winHeight = 700;
+
+    let finalX = x + 20;
+    let finalY = y + 20;
+
+    if (finalX + winWidth > viewportWidth) finalX = x - winWidth - 20;
+    if (finalY + winHeight > viewportHeight) finalY = y - winHeight - 20;
+
+    finalX = Math.max(10, finalX);
+    finalY = Math.max(10, finalY);
+
+    win.style.left = `${finalX}px`;
+    win.style.top = `${finalY}px`;
+    win.classList.add('visible');
+  }
+
+  public hide() {
+    this.cleanup();
+    const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+    win.classList.remove('visible');
+    setTimeout(() => {
+      if (this.container.parentNode) {
+        this.container.parentNode.removeChild(this.container);
+      }
+    }, 300);
+  }
+
+  public showLoading() {
+    const loading = this.shadow.querySelector('.rs-loading');
+    const content = this.shadow.querySelector('.rs-content');
+    loading?.classList.remove('hidden');
+    content?.classList.add('hidden');
+    this.updateStatus("Processing...");
+  }
+
+  public async showContent(markdown: string, saveToHistory: boolean = true) {
+    const loading = this.shadow.querySelector('.rs-loading');
+    const content = this.shadow.querySelector('.rs-content');
+    loading?.classList.add('hidden');
+    content?.classList.remove('hidden');
+
+    if (this.contentArea) {
+      try {
+        this.contentArea.innerHTML = await renderMarkdown(markdown);
+        // Save to history only if requested
+        if (saveToHistory) {
+          this.saveToHistory(markdown);
+        }
+      } catch (error) {
+        this.contentArea.innerHTML = `<div class="rs-error">渲染错误: ${(error as Error).message}</div>`;
+      }
+    }
+    this.updateStatus("Done");
+  }
+
+  public showError(message: string) {
+    const loading = this.shadow.querySelector('.rs-loading');
+    const content = this.shadow.querySelector('.rs-content');
+    loading?.classList.add('hidden');
+    content?.classList.remove('hidden');
+
+    // Provide user-friendly error messages
+    let friendlyMessage = message;
+    if (message.includes('Missing configuration')) {
+      friendlyMessage = '请先在设置中配置 API 信息';
+    } else if (message.includes('HTTP 401') || message.includes('Unauthorized')) {
+      friendlyMessage = 'API Key 无效，请检查设置';
+    } else if (message.includes('HTTP 429')) {
+      friendlyMessage = 'API 请求过于频繁，请稍后再试';
+    } else if (message.includes('HTTP 500') || message.includes('HTTP 502') || message.includes('HTTP 503')) {
+      friendlyMessage = 'API 服务暂时不可用，请稍后再试';
+    } else if (message.includes('Failed to fetch') || message.includes('Network')) {
+      friendlyMessage = '网络连接失败，请检查网络设置';
+    } else if (message.includes('Invalid selection')) {
+      friendlyMessage = '选区无效，请重新框选';
+    }
+
+    if (this.contentArea) {
+      this.contentArea.innerHTML = `
+        <div class="rs-error">
+          <svg class="rs-error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>${friendlyMessage}</span>
+        </div>`;
+    }
+    this.updateStatus("Error");
+  }
+
+  private updateStatus(text: string) {
+    const status = this.shadow.querySelector('.rs-status');
+    if (status) status.textContent = text;
+  }
+
+  private async copyContent() {
+    if (!this.contentArea) return;
+    const text = this.contentArea.innerText;
+    try {
+      await navigator.clipboard.writeText(text);
+      this.updateStatus("已复制到剪贴板");
+      setTimeout(() => this.updateStatus("Done"), 2000);
+    } catch (error) {
+      this.updateStatus("复制失败");
+    }
+  }
+
+  private async saveToHistory(markdown: string) {
+    try {
+      const history = await this.getHistory();
+      history.unshift({
+        markdown,
+        timestamp: Date.now()
+      });
+      // Keep only last 10 items
+      const trimmed = history.slice(0, 10);
+      await chrome.storage.local.set({ rectsolve_history: JSON.stringify(trimmed) });
+    } catch (error) {
+      console.error('[FloatingWindow] Failed to save history:', error);
+    }
+  }
+
+  private async getHistory(): Promise<Array<{ markdown: string; timestamp: number }>> {
+    try {
+      const result = await chrome.storage.local.get('rectsolve_history');
+      const data = result.rectsolve_history;
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('[FloatingWindow] Failed to read history:', error);
+      return [];
+    }
+  }
+}

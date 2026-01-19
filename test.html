@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RectSolve 测试页面</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .test-area {
+      border: 2px solid #3b82f6;
+      padding: 30px;
+      margin: 20px 0;
+      background: #f0f9ff;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #1e40af;
+    }
+    .instruction {
+      background: #fef3c7;
+      padding: 15px;
+      border-left: 4px solid #f59e0b;
+      margin: 20px 0;
+    }
+    .math-problem {
+      font-size: 18px;
+      margin: 20px 0;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 RectSolve 扩展测试页面</h1>
+
+  <div class="instruction">
+    <strong>使用说明：</strong>
+    <ol>
+      <li>确保您已经在扩展选项中配置了 API</li>
+      <li>点击浏览器工具栏的 RectSolve 图标</li>
+      <li>页面应该出现半透明遮罩</li>
+      <li>拖拽鼠标框选下面的题目</li>
+      <li>松开鼠标后查看 AI 解答</li>
+    </ol>
+  </div>
+
+  <div class="test-area">
+    <h2>测试题目 1：简单数学题</h2>
+    <div class="math-problem">
+      <p><strong>问题：</strong>求解方程 x² - 5x + 6 = 0</p>
+      <p>请给出详细的解题步骤。</p>
+    </div>
+  </div>
+
+  <div class="test-area">
+    <h2>测试题目 2：应用题</h2>
+    <div class="math-problem">
+      <p><strong>问题：</strong>小明有 15 个苹果，他给了小红 5 个，又给了小刚 3 个。请问小明还剩下多少个苹果？</p>
+    </div>
+  </div>
+
+  <div class="test-area">
+    <h2>测试题目 3：几何题</h2>
+    <div class="math-problem">
+      <p><strong>问题：</strong>一个圆的半径是 5cm，求这个圆的面积和周长。</p>
+      <p>（π 取 3.14）</p>
+    </div>
+  </div>
+
+  <div class="instruction">
+    <strong>⚠️ 如果点击图标没有反应：</strong>
+    <ul>
+      <li>按 F12 打开开发者工具</li>
+      <li>查看 Console 标签是否有错误信息</li>
+      <li>截图发送给开发者</li>
+    </ul>
+  </div>
+
+  <script>
+    console.log('[RectSolve Test Page] 页面已加载');
+    console.log('[RectSolve Test Page] 如果扩展正常工作，点击图标后应该看到 Content Script 的日志');
+  </script>
+</body>
+</html>
