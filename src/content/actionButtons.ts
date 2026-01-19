@@ -165,15 +165,15 @@ export class ActionButtons {
 
   public show() {
     if (!this.container.parentNode) {
+      this.container.style.display = 'block'; // Ensure visible on mount
       document.body.appendChild(this.container);
+    } else {
+      this.container.style.display = 'block';
     }
   }
 
   public hide() {
-    this.cleanup();
-    if (this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
-    }
+    this.container.style.display = 'none';
   }
 
   public setSidebarOpen(isOpen: boolean) {
@@ -185,6 +185,6 @@ export class ActionButtons {
   }
 
   public isVisible(): boolean {
-    return !!this.container.parentNode;
+    return !!this.container.parentNode && this.container.style.display !== 'none';
   }
 }

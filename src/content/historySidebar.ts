@@ -1107,15 +1107,16 @@ export class HistorySidebar {
 
   public show() {
     if (!this.container.parentNode) {
+      this.container.style.display = 'flex'; // Ensure visible on mount (flex)
       document.body.appendChild(this.container);
+    } else {
+      this.container.style.display = 'flex';
     }
   }
 
   public hide() {
-    this.cleanup();
-    if (this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
-    }
+    // Just hide, don't remove from DOM to keep state
+    this.container.style.display = 'none';
   }
 
   public refresh() {

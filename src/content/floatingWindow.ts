@@ -409,10 +409,15 @@ export class FloatingWindow {
 
   public show(x: number, y: number) {
     if (!this.container.parentNode) {
+      this.container.style.display = 'block'; // Ensure visible on mount
       document.body.appendChild(this.container);
+    } else {
+      this.container.style.display = 'block';
     }
 
     const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+    // ... rest of logic
+    // (Existing centering logic remains, just ensure we don't duplicate appendChild)
 
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -430,17 +435,22 @@ export class FloatingWindow {
 
     win.style.left = `${finalX}px`;
     win.style.top = `${finalY}px`;
+    
+    // Force reflow to ensure transition works
+    void win.offsetWidth; 
+    
     win.classList.add('visible');
   }
 
   public hide() {
-    this.cleanup();
     const win = this.shadow.querySelector('.rs-window') as HTMLElement;
     win.classList.remove('visible');
     setTimeout(() => {
-      if (this.container.parentNode) {
-        this.container.parentNode.removeChild(this.container);
-      }
+      // Just hide, don't remove from DOM
+      this.container.style.display = 'none';
+      // if (this.container.parentNode) {
+      //   this.container.parentNode.removeChild(this.container);
+      // }
     }, 300);
   }
 
