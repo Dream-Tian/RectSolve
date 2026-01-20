@@ -406,6 +406,18 @@ const WINDOW_STYLES = `
   display: flex;
   gap: 6px;
   margin-left: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(2px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.rs-footer-chips.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .rs-chip-mini {
@@ -690,13 +702,35 @@ export class FloatingWindow {
     }
 
     // Quick actions handlers
+    const chipsContainer = windowEl.querySelector('.rs-footer-chips');
     const chips = windowEl.querySelectorAll('.rs-chip-mini');
+    
+    if (followupInput && chipsContainer) {
+      const showChips = () => chipsContainer.classList.add('visible');
+      const hideChips = () => {
+        // Delay hiding to allow clicking on chips
+        setTimeout(() => {
+          if (document.activeElement !== followupInput) {
+            chipsContainer.classList.remove('visible');
+          }
+        }, 200);
+      };
+
+      followupInput.addEventListener('focus', showChips);
+      followupInput.addEventListener('blur', hideChips);
+      
+      this.eventListeners.push({ element: followupInput, event: 'focus', handler: showChips });
+      this.eventListeners.push({ element: followupInput, event: 'blur', handler: hideChips });
+    }
+
     chips.forEach(chip => {
         const chipHandler = () => {
             const text = chip.textContent;
             if (text && followupInput) {
                 followupInput.value = text;
                 this.sendFollowUp(followupInput);
+                // Hide chips after selection
+                chipsContainer?.classList.remove('visible');
             }
         };
         chip.addEventListener('click', chipHandler);
