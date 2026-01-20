@@ -1248,7 +1248,13 @@ export class HistorySidebar {
 
       const previewDiv = document.createElement('div');
       previewDiv.className = 'history-preview';
-      const preview = item.markdown.substring(0, 80).replace(/\n/g, ' ').replace(/#/g, '');
+      // Clean up preview text: remove stats, prefixes, markdown markers
+      let preview = item.markdown
+          .replace(/^[\s\S]*?(简要复述题意|题目简述|简要重述|题意复述|重述题意)[：:]\s*/, '') // Remove prefix
+          .replace(/[#*`]/g, '') // Remove markdown
+          .replace(/\n+/g, ' ')  // Flatten newlines
+          .trim();
+      preview = preview.substring(0, 80);
       previewDiv.textContent = preview;
 
       historyItem.appendChild(timeDiv);

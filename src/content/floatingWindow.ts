@@ -370,6 +370,37 @@ const WINDOW_STYLES = `
   display: none;
 }
 
+.rs-footer-chips {
+  display: flex;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.rs-chip-mini {
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--rs-text-secondary);
+  background: rgba(var(--rs-bg-rgb), 0.5);
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.rs-chip-mini:hover {
+  color: var(--rs-primary);
+  border-color: var(--rs-primary);
+  background: rgba(var(--rs-bg-rgb), 0.8);
+}
+
+.rs-followup-row {
+  display: flex;
+
+  gap: 8px;
+  width: 100%;
+}
+
 .rs-followup-input {
   flex: 1;
   padding: 8px 12px;
@@ -479,6 +510,29 @@ export class FloatingWindow {
         .rs-window .katex-display {
              color: var(--rs-text);
         }
+
+        .rs-question-box {
+            margin: 20px 0 10px 0;
+            padding: 12px 14px;
+            border: 1px solid var(--rs-primary);
+            border-left-width: 4px;
+            border-radius: 6px;
+            background: rgba(var(--rs-bg-rgb), 0.5);
+            position: relative;
+        }
+
+        .rs-question-label {
+            font-size: 12px;
+            color: var(--rs-primary);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .rs-question-content {
+            font-size: 14px;
+            color: var(--rs-text);
+            line-height: 1.5;
+        }
       </style>
       <div class="rs-header">
         <div class="rs-brand">
@@ -506,7 +560,13 @@ export class FloatingWindow {
         <div class="rs-content"></div>
       </div>
       <div class="rs-footer">
-        <span class="rs-status">Ready</span>
+        <div style="display: flex; align-items: center;">
+            <span class="rs-status">Ready</span>
+            <div class="rs-footer-chips">
+                <div class="rs-chip-mini">详细解释</div>
+                <div class="rs-chip-mini">举个例子</div>
+            </div>
+        </div>
         <div class="rs-actions">
           <button class="rs-action-btn" id="rs-copy">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -518,8 +578,10 @@ export class FloatingWindow {
         </div>
       </div>
       <div class="rs-followup hidden">
-        <input type="text" class="rs-followup-input" placeholder="${i18n.t('follow_up_placeholder')}" />
-        <button class="rs-followup-send" disabled>${i18n.t('send')}</button>
+        <div class="rs-followup-row">
+            <input type="text" class="rs-followup-input" placeholder="${i18n.t('follow_up_placeholder')}" />
+            <button class="rs-followup-send" disabled>${i18n.t('send')}</button>
+        </div>
       </div>
       <div class="rs-resize-handle"></div>
     `;
@@ -541,6 +603,20 @@ export class FloatingWindow {
       if (e.key === 'Enter') {
         this.sendFollowUp(followupInput);
       }
+    });
+
+    // Quick actions handlers
+    const chips = windowEl.querySelectorAll('.rs-chip-mini');
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const text = chip.textContent;
+            if (text) {
+                // Set text to input but maybe just send directly?
+                // User requirement: "Click to ask"
+                followupInput.value = text;
+                this.sendFollowUp(followupInput);
+            }
+        });
     });
   }
 
@@ -690,6 +766,18 @@ export class FloatingWindow {
 
     // Add user question to conversation
     this.conversationMessages.push({ role: 'user', content: question });
+
+    // Show question immediately in UI
+    if (this.contentArea) {
+       const questionHtml = `
+         <div class="rs-question-box">
+             <div class="rs-question-label">追问</div>
+             <div class="rs-question-content">${question.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+         </div>
+       `;
+       this.contentArea.insertAdjacentHTML('beforeend', questionHtml);
+       this.contentArea.scrollTop = this.contentArea.scrollHeight;
+    }
 
     // Show loading
     this.updateStatus('追问中...');
