@@ -1,0 +1,39 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="frame-gradient" x1="100" y1="100" x2="412" y2="412" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <!-- Background Squircle -->
+  <rect x="0" y="0" width="512" height="512" rx="128" fill="url(#bg-gradient)"/>
+  
+  <!-- Selection Frame -->
+  <g filter="url(#glow)">
+    <!-- Top Left -->
+    <path d="M120 200V120H200" stroke="url(#frame-gradient)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Top Right -->
+    <path d="M312 120H392V200" stroke="url(#frame-gradient)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Bottom Right -->
+    <path d="M392 312V392H312" stroke="url(#frame-gradient)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Bottom Left -->
+    <path d="M200 392H120V312" stroke="url(#frame-gradient)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Center Symbol (Integral) -->
+  <path d="M272 176C272 153.909 254.091 136 232 136C218.745 136 208 146.745 208 160" stroke="#60a5fa" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M240 376C240 398.091 257.909 416 280 416C293.255 416 304 405.255 304 392" stroke="#60a5fa" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M272 176L240 376" stroke="#60a5fa" stroke-width="24" stroke-linecap="round"/>
+  
+  <!-- Subtle Grid Lines (Optional, for 'Math' feel) -->
+  <path d="M128 256H384M256 128V384" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.2"/>
+</svg>

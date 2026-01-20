@@ -161,7 +161,7 @@ export class HistorySidebar {
         }
 
         .sidebar-header {
-          padding: 20px 20px 10px 24px;
+          padding: 12px 20px 8px 24px;
           display: flex;
           align-items: center;
         }
