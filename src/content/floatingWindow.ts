@@ -270,15 +270,33 @@ const WINDOW_STYLES = `
   height: 14px;
 }
 
-.rs-spinner {
-  width: 24px;
-  height: 24px;
-  color: var(--rs-primary);
-  animation: rs-spin 1s linear infinite;
+.rs-morph-sq {
+  width: 32px;
+  height: 32px;
+  background: var(--rs-primary);
+  opacity: 0.9;
+  animation: rs-morph 2s ease-in-out infinite;
 }
 
-@keyframes rs-spin {
-  100% { transform: rotate(360deg); }
+@keyframes rs-morph {
+  0% { transform: scale(1) rotate(0deg); border-radius: 4px; }
+  50% { transform: scale(0.6) rotate(180deg); border-radius: 50%; width: 32px; }
+  100% { transform: scale(1) rotate(360deg); border-radius: 4px; }
+}
+
+.rs-animating-dots::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  text-align: left;
+  animation: rs-dots 2s steps(1) infinite;
+}
+
+@keyframes rs-dots {
+  0%, 100% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
 }
 
 .rs-error {
@@ -461,11 +479,8 @@ export class FloatingWindow {
           <img class="rs-preview-img" src="" alt="题目截图" />
         </div>
         <div class="rs-loading hidden">
-          <svg class="rs-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span>正在生成回答...</span>
+          <div class="rs-morph-sq"></div>
+          <span class="rs-animating-dots">正在生成回答</span>
         </div>
         <div class="rs-content"></div>
       </div>
@@ -792,7 +807,26 @@ export class FloatingWindow {
 
   private updateStatus(text: string) {
     const status = this.shadow.querySelector('.rs-status');
-    if (status) status.textContent = text;
+    if (!status) return;
+
+    let displayText = text;
+    let shouldAnimate = false;
+
+    if (text === 'Processing...' || text === '正在生成回答...') {
+      displayText = '正在生成回答';
+      shouldAnimate = true;
+    } else if (text === '追问中...') {
+      displayText = '追问中';
+      shouldAnimate = true;
+    }
+
+    status.textContent = displayText;
+    
+    if (shouldAnimate) {
+      status.classList.add('rs-animating-dots');
+    } else {
+      status.classList.remove('rs-animating-dots');
+    }
   }
 
   private async copyContent() {
