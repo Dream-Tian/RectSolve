@@ -473,6 +473,18 @@ const WINDOW_STYLES = `
   background: #9ca3af;
   cursor: not-allowed;
 }
+
+/* Streaming cursor animation */
+.rs-streaming-cursor {
+  display: inline;
+  color: var(--rs-primary);
+  animation: blink 1s step-end infinite;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
 `;
 
 export class FloatingWindow {
@@ -851,40 +863,32 @@ export class FloatingWindow {
     const sendBtn = this.shadow.querySelector('.rs-followup-send') as HTMLButtonElement;
     if (sendBtn) sendBtn.disabled = true;
 
-    try {
-      // Call FOLLOW_UP API
-      const response = await chrome.runtime.sendMessage({
-        type: 'FOLLOW_UP',
-        messages: this.conversationMessages,
-        imageDataUrl: this.currentImageUrl,
-        systemPrompt: this.currentSystemPrompt
-      });
+    // Initialize streaming follow-up
+    this.initStreamingFollowUp();
 
-      if (response && response.success && response.markdown) {
-        // Append new response to conversation (this is done in showContent)
-        // Append to content area instead of replacing
-        if (this.contentArea) {
-          const divider = document.createElement('div');
-          divider.innerHTML = '<hr style="border: none; border-top: 1px solid var(--rs-border); margin: 16px 0;">';
-          this.contentArea.appendChild(divider.firstChild!);
-          
-          const newContent = document.createElement('div');
-          newContent.innerHTML = await renderMarkdown(response.markdown);
-          Array.from(newContent.childNodes).forEach(node => this.contentArea!.appendChild(node));
-          
-          // Store assistant response
-          this.conversationMessages.push({ role: 'assistant', content: response.markdown });
-          this.lastMarkdown = response.markdown;
-        }
-        this.updateStatus('Done');
-      } else {
-        this.updateStatus(`追问失败: ${response?.error || '未知错误'}`);
+    // Use Port for streaming response
+    const port = chrome.runtime.connect({ name: 'stream' });
+    
+    port.onMessage.addListener((msg) => {
+      if (msg.type === 'chunk') {
+        this.appendStreamingFollowUpChunk(msg.content);
+      } else if (msg.type === 'done') {
+        this.finalizeStreamingFollowUp();
+        if (sendBtn) sendBtn.disabled = false;
+        port.disconnect();
+      } else if (msg.type === 'error') {
+        this.updateStatus(`追问失败: ${msg.error}`);
+        if (sendBtn) sendBtn.disabled = false;
+        port.disconnect();
       }
-    } catch (error) {
-      this.updateStatus(`追问失败: ${(error as Error).message}`);
-    } finally {
-      if (sendBtn) sendBtn.disabled = false;
-    }
+    });
+    
+    port.postMessage({
+      type: 'FOLLOW_UP_STREAM',
+      messages: this.conversationMessages,
+      imageDataUrl: this.currentImageUrl,
+      systemPrompt: this.currentSystemPrompt
+    });
   }
 
   public showLoading() {
@@ -946,6 +950,158 @@ export class FloatingWindow {
       }
     }
     this.updateStatus("Done");
+  }
+
+  // Streaming content display - called with incremental chunks
+  private streamingContent: string = '';
+  private streamingRenderTimeout: number | null = null;
+  
+  public initStreamingContent(imageDataUrl?: string, systemPrompt?: string) {
+    this.streamingContent = '';
+    const loading = this.shadow.querySelector('.rs-loading');
+    const content = this.shadow.querySelector('.rs-content');
+    const preview = this.shadow.querySelector('.rs-preview');
+    const previewImg = this.shadow.querySelector('.rs-preview-img') as HTMLImageElement;
+    
+    loading?.classList.add('hidden');
+    content?.classList.remove('hidden');
+    
+    if (imageDataUrl && preview && previewImg) {
+      previewImg.src = imageDataUrl;
+      preview.classList.remove('hidden');
+      this.currentImageUrl = imageDataUrl;
+    }
+    
+    if (systemPrompt) {
+      this.currentSystemPrompt = systemPrompt;
+    }
+    
+    if (this.contentArea) {
+      this.contentArea.innerHTML = '<span class="rs-streaming-cursor">▌</span>';
+    }
+    
+    this.updateStatus('Processing...');
+  }
+  
+  public appendStreamingChunk(chunk: string) {
+    this.streamingContent += chunk;
+    
+    // 使用节流渲染，避免频繁更新导致卡顿
+    if (this.streamingRenderTimeout) {
+      clearTimeout(this.streamingRenderTimeout);
+    }
+    
+    this.streamingRenderTimeout = window.setTimeout(async () => {
+      if (this.contentArea) {
+        try {
+          // 渲染当前累积的内容
+          const rendered = await renderMarkdown(this.streamingContent);
+          this.contentArea.innerHTML = rendered + '<span class="rs-streaming-cursor">▌</span>';
+          // 自动滚动到底部
+          this.contentArea.scrollTop = this.contentArea.scrollHeight;
+        } catch {
+          // 渲染失败时显示原始文本
+          this.contentArea.innerHTML = this.streamingContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<span class="rs-streaming-cursor">▌</span>';
+        }
+      }
+    }, 50); // 50ms 节流
+  }
+  
+  public async finalizeStreamingContent(saveToHistory: boolean = true) {
+    // 清除节流定时器
+    if (this.streamingRenderTimeout) {
+      clearTimeout(this.streamingRenderTimeout);
+      this.streamingRenderTimeout = null;
+    }
+    
+    const followup = this.shadow.querySelector('.rs-followup');
+    
+    if (this.contentArea && this.streamingContent) {
+      try {
+        // 最终渲染，不带光标
+        this.contentArea.innerHTML = await renderMarkdown(this.streamingContent);
+        this.lastMarkdown = this.streamingContent;
+        
+        // 初始化对话历史
+        if (this.conversationMessages.length === 0 && this.currentImageUrl) {
+          this.conversationMessages.push({ role: 'user', content: '请解答这道题' });
+          this.conversationMessages.push({ role: 'assistant', content: this.streamingContent });
+          followup?.classList.remove('hidden');
+        }
+        
+        // 保存到历史
+        if (saveToHistory) {
+          this.saveToHistory(this.streamingContent, this.currentImageUrl);
+        }
+      } catch (error) {
+        this.contentArea.innerHTML = `<div class="rs-error">渲染错误: ${(error as Error).message}</div>`;
+      }
+    }
+    
+    this.updateStatus('Done');
+  }
+  
+  // 追问的流式响应
+  public initStreamingFollowUp() {
+    this.streamingContent = '';
+    
+    if (this.contentArea) {
+      // 添加分割线和新内容区域
+      const divider = document.createElement('div');
+      divider.className = 'rs-stream-divider';
+      divider.innerHTML = '<hr style="border: none; border-top: 1px solid var(--rs-border); margin: 16px 0;">';
+      this.contentArea.appendChild(divider);
+      
+      const streamArea = document.createElement('div');
+      streamArea.className = 'rs-stream-area';
+      streamArea.innerHTML = '<span class="rs-streaming-cursor">▌</span>';
+      this.contentArea.appendChild(streamArea);
+      
+      this.contentArea.scrollTop = this.contentArea.scrollHeight;
+    }
+    
+    this.updateStatus('追问中...');
+  }
+  
+  public appendStreamingFollowUpChunk(chunk: string) {
+    this.streamingContent += chunk;
+    
+    if (this.streamingRenderTimeout) {
+      clearTimeout(this.streamingRenderTimeout);
+    }
+    
+    this.streamingRenderTimeout = window.setTimeout(async () => {
+      const streamArea = this.contentArea?.querySelector('.rs-stream-area');
+      if (streamArea) {
+        try {
+          const rendered = await renderMarkdown(this.streamingContent);
+          streamArea.innerHTML = rendered + '<span class="rs-streaming-cursor">▌</span>';
+          this.contentArea!.scrollTop = this.contentArea!.scrollHeight;
+        } catch {
+          streamArea.innerHTML = this.streamingContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '<span class="rs-streaming-cursor">▌</span>';
+        }
+      }
+    }, 50);
+  }
+  
+  public async finalizeStreamingFollowUp() {
+    if (this.streamingRenderTimeout) {
+      clearTimeout(this.streamingRenderTimeout);
+      this.streamingRenderTimeout = null;
+    }
+    
+    const streamArea = this.contentArea?.querySelector('.rs-stream-area');
+    if (streamArea && this.streamingContent) {
+      try {
+        streamArea.innerHTML = await renderMarkdown(this.streamingContent);
+        this.conversationMessages.push({ role: 'assistant', content: this.streamingContent });
+        this.lastMarkdown = this.streamingContent;
+      } catch (error) {
+        streamArea.innerHTML = `<div class="rs-error">渲染错误: ${(error as Error).message}</div>`;
+      }
+    }
+    
+    this.updateStatus('Done');
   }
 
   public showError(message: string) {

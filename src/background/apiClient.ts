@@ -183,3 +183,181 @@ export async function callMultiTurnChatCompletion(
     }
   }, 3, 1000);
 }
+
+// Streaming version of vision chat completion
+export async function callVisionChatCompletionStream(
+  config: Config,
+  imageDataUrl: string,
+  prompt: string,
+  onChunk: (chunk: string) => void,
+  onComplete: (usage?: TokenUsage) => void,
+  onError: (error: Error) => void,
+  timeoutMs = 120000
+): Promise<void> {
+  const url = config.baseUrl + "/chat/completions";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const messages: ChatMessage[] = [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: imageDataUrl } },
+      ],
+    },
+  ];
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.defaultModel,
+        messages,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const msg = (errorData as any)?.error?.message || res.statusText || "API error";
+      throw new Error(`HTTP ${res.status}: ${msg}`);
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) {
+      throw new Error("No response body");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let usage: TokenUsage | undefined;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === "data: [DONE]") continue;
+        if (!trimmed.startsWith("data: ")) continue;
+
+        try {
+          const json = JSON.parse(trimmed.slice(6));
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            onChunk(delta);
+          }
+          // Some providers send usage in the last chunk
+          if (json.usage) {
+            usage = json.usage;
+          }
+        } catch {
+          // Ignore parse errors for incomplete chunks
+        }
+      }
+    }
+
+    onComplete(usage);
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      onError(new Error("Request timeout"));
+    } else {
+      onError(e instanceof Error ? e : new Error("API request failed"));
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Streaming version of multi-turn chat completion
+export async function callMultiTurnChatCompletionStream(
+  config: Config,
+  messages: ChatMessage[],
+  onChunk: (chunk: string) => void,
+  onComplete: (usage?: TokenUsage) => void,
+  onError: (error: Error) => void,
+  timeoutMs = 120000
+): Promise<void> {
+  const url = config.baseUrl + "/chat/completions";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.defaultModel,
+        messages,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const msg = (errorData as any)?.error?.message || res.statusText || "API error";
+      throw new Error(`HTTP ${res.status}: ${msg}`);
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) {
+      throw new Error("No response body");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let usage: TokenUsage | undefined;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === "data: [DONE]") continue;
+        if (!trimmed.startsWith("data: ")) continue;
+
+        try {
+          const json = JSON.parse(trimmed.slice(6));
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            onChunk(delta);
+          }
+          if (json.usage) {
+            usage = json.usage;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    onComplete(usage);
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      onError(new Error("Request timeout"));
+    } else {
+      onError(e instanceof Error ? e : new Error("API request failed"));
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}

@@ -56,29 +56,33 @@ function applyTheme(theme: string) {
         floatingWindow?.show(rect.x + rect.w, rect.y);
         floatingWindow?.showLoading();
   
-        chrome.runtime.sendMessage(
-          {
-            type: 'CAPTURE_SOLVE',
-            rect,
-            dpr: window.devicePixelRatio || 1
-          },
-          (response: CaptureResponse) => {
-            if (chrome.runtime.lastError) {
-              floatingWindow?.showError(chrome.runtime.lastError.message || 'Unknown error');
-              return;
-            }
-  
-            if (response && response.success && response.markdown) {
-              floatingWindow?.showContent(response.markdown, true, response.imageDataUrl);
-              // Refresh history sidebar
-              historySidebar?.refresh();
-            } else if (response && !response.success && response.error) {
-              floatingWindow?.showError(response.error);
-            } else {
-              floatingWindow?.showError('Unexpected response format');
-            }
+        // Use Port for streaming response
+        const port = chrome.runtime.connect({ name: 'stream' });
+        
+        port.onMessage.addListener((msg) => {
+          if (msg.type === 'image') {
+            // Initialize streaming with image
+            floatingWindow?.initStreamingContent(msg.imageDataUrl);
+          } else if (msg.type === 'chunk') {
+            // Append streaming chunk
+            floatingWindow?.appendStreamingChunk(msg.content);
+          } else if (msg.type === 'done') {
+            // Finalize streaming
+            floatingWindow?.finalizeStreamingContent(true);
+            historySidebar?.refresh();
+            port.disconnect();
+          } else if (msg.type === 'error') {
+            floatingWindow?.showError(msg.error);
+            port.disconnect();
           }
-        );
+        });
+        
+        port.postMessage({
+          type: 'CAPTURE_SOLVE_STREAM',
+          rect,
+          dpr: window.devicePixelRatio || 1,
+          tabId: undefined // Will be filled by background
+        });
       },
       onCancel: () => {
         console.log('[RectSolve Content] Selection cancelled');
@@ -173,23 +177,31 @@ function applyTheme(theme: string) {
                 console.log('[RectSolve Content] Selection complete:', rect);
                 floatingWindow?.show(rect.x + rect.w, rect.y);
                 floatingWindow?.showLoading();
-                chrome.runtime.sendMessage(
-                  { type: 'CAPTURE_SOLVE', rect, dpr: window.devicePixelRatio || 1 },
-                  (response: CaptureResponse) => {
-                    if (chrome.runtime.lastError) {
-                      floatingWindow?.showError(chrome.runtime.lastError.message || 'Unknown error');
-                      return;
-                    }
-                    if (response && response.success && response.markdown) {
-                      floatingWindow?.showContent(response.markdown, true, response.imageDataUrl);
-                      historySidebar?.refresh();
-                    } else if (response && !response.success && response.error) {
-                      floatingWindow?.showError(response.error);
-                    } else {
-                      floatingWindow?.showError('Unexpected response format');
-                    }
+                
+                // Use Port for streaming response
+                const port = chrome.runtime.connect({ name: 'stream' });
+                
+                port.onMessage.addListener((msg) => {
+                  if (msg.type === 'image') {
+                    floatingWindow?.initStreamingContent(msg.imageDataUrl);
+                  } else if (msg.type === 'chunk') {
+                    floatingWindow?.appendStreamingChunk(msg.content);
+                  } else if (msg.type === 'done') {
+                    floatingWindow?.finalizeStreamingContent(true);
+                    historySidebar?.refresh();
+                    port.disconnect();
+                  } else if (msg.type === 'error') {
+                    floatingWindow?.showError(msg.error);
+                    port.disconnect();
                   }
-                );
+                });
+                
+                port.postMessage({
+                  type: 'CAPTURE_SOLVE_STREAM',
+                  rect,
+                  dpr: window.devicePixelRatio || 1,
+                  tabId: undefined
+                });
               },
               onCancel: () => {
                 console.log('[RectSolve Content] Selection cancelled');

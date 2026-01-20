@@ -1,6 +1,7 @@
 import { captureVisibleTab } from './capture';
 import { cropScreenshot } from './cropper';
-import { callVisionChatCompletion } from './apiClient';
+import { callVisionChatCompletion, callVisionChatCompletionStream, callMultiTurnChatCompletionStream } from './apiClient';
+import type { ChatMessage } from './apiClient';
 import { getConfig } from '@/utils/storage_shared';
 import type { CaptureRequest, CaptureResponse } from '@/types';
 
@@ -84,6 +85,122 @@ const DEFAULT_PROMPT =
 
 // Cache for screenshots to solve permission issues with activeTab
 const screenshotCache = new Map<number, string>();
+
+// Port connection handler for streaming responses
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'stream') {
+    port.onMessage.addListener(async (msg) => {
+      if (msg.type === 'CAPTURE_SOLVE_STREAM') {
+        await handleStreamingCapture(port, msg);
+      } else if (msg.type === 'FOLLOW_UP_STREAM') {
+        await handleStreamingFollowUp(port, msg);
+      }
+    });
+  }
+});
+
+// Handle streaming capture solve
+async function handleStreamingCapture(port: chrome.runtime.Port, msg: any) {
+  try {
+    const { rect, dpr, tabId } = msg;
+    if (rect.w <= 0 || rect.h <= 0) {
+      port.postMessage({ type: 'error', error: 'Invalid selection' });
+      return;
+    }
+
+    const config = await getConfig();
+    if (!config?.baseUrl || !config?.apiKey || !config?.defaultModel) {
+      port.postMessage({ type: 'error', error: 'Missing configuration. Please configure API settings.' });
+      return;
+    }
+
+    let dataUrl: string;
+    if (tabId && screenshotCache.has(tabId)) {
+      dataUrl = screenshotCache.get(tabId)!;
+      screenshotCache.delete(tabId);
+    } else {
+      const capture = await captureVisibleTab();
+      dataUrl = capture.dataUrl;
+    }
+
+    const croppedBlob = await cropScreenshot(dataUrl, rect, dpr);
+    const imageDataUrl = await blobToDataUrl(croppedBlob);
+    
+    // Send image URL first
+    port.postMessage({ type: 'image', imageDataUrl });
+
+    const basePrompt = config.systemPrompt?.trim() || DEFAULT_PROMPT;
+    const langInstruction = config.responseLanguage === 'en' 
+      ? ' Please respond in English.' 
+      : ' 请用中文回答。';
+    const prompt = basePrompt + langInstruction;
+
+    await callVisionChatCompletionStream(
+      config,
+      imageDataUrl,
+      prompt,
+      (chunk) => port.postMessage({ type: 'chunk', content: chunk }),
+      (usage) => {
+        if (usage) updateTokenStats(usage);
+        port.postMessage({ type: 'done', usage });
+      },
+      (error) => port.postMessage({ type: 'error', error: error.message })
+    );
+  } catch (error) {
+    port.postMessage({ type: 'error', error: (error as Error).message });
+  }
+}
+
+// Handle streaming follow-up
+async function handleStreamingFollowUp(port: chrome.runtime.Port, msg: any) {
+  try {
+    const config = await getConfig();
+    if (!config?.baseUrl || !config?.apiKey || !config?.defaultModel) {
+      port.postMessage({ type: 'error', error: 'Missing configuration.' });
+      return;
+    }
+
+    const { messages, imageDataUrl, systemPrompt } = msg;
+    const langInstruction = config.responseLanguage === 'en' 
+      ? ' Please respond in English.' 
+      : ' 请用中文回答。';
+    const fullSystemPrompt = (systemPrompt || DEFAULT_PROMPT) + langInstruction;
+
+    // Build ChatMessage array for multi-turn
+    const apiMessages: ChatMessage[] = [];
+    
+    if (messages.length > 0) {
+      const firstUserMsg = messages[0];
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "text", text: fullSystemPrompt + "\n\n" + firstUserMsg.content },
+          { type: "image_url", image_url: { url: imageDataUrl } },
+        ],
+      });
+
+      for (let i = 1; i < messages.length; i++) {
+        apiMessages.push({
+          role: messages[i].role,
+          content: messages[i].content,
+        });
+      }
+    }
+
+    await callMultiTurnChatCompletionStream(
+      config,
+      apiMessages,
+      (chunk) => port.postMessage({ type: 'chunk', content: chunk }),
+      (usage) => {
+        if (usage) updateTokenStats(usage);
+        port.postMessage({ type: 'done', usage });
+      },
+      (error) => port.postMessage({ type: 'error', error: error.message })
+    );
+  } catch (error) {
+    port.postMessage({ type: 'error', error: (error as Error).message });
+  }
+}
 
 // Helper to accumulate token stats in storage
 async function updateTokenStats(usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
