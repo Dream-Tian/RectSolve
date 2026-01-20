@@ -1,6 +1,6 @@
 import type { Config } from '@/types';
 
-type ChatMessage =
+export type ChatMessage =
   | { role: "system" | "user" | "assistant"; content: string }
   | {
       role: "user";
@@ -96,6 +96,51 @@ export async function callVisionChatCompletion(
         ],
       },
     ];
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.defaultModel,
+          messages,
+        }),
+        signal: controller.signal,
+      });
+
+      const data = (await res.json()) as ChatCompletionResponse;
+      if (!res.ok) {
+        const msg = data?.error?.message || res.statusText || "API error";
+        throw new Error(`HTTP ${res.status}: ${msg}`);
+      }
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error("Empty response");
+      }
+      return content;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        throw new Error("Request timeout");
+      }
+      throw e instanceof Error ? e : new Error("API request failed");
+    } finally {
+      clearTimeout(timer);
+    }
+  }, 3, 1000);
+}
+
+export async function callMultiTurnChatCompletion(
+  config: Config,
+  messages: ChatMessage[],
+  timeoutMs = 60000
+): Promise<string> {
+  return retryWithBackoff(async () => {
+    const url = config.baseUrl + "/chat/completions";
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await fetch(url, {

@@ -34,5 +34,21 @@ export interface ModelListResponse {
   error?: string;
 }
 
-export type Message = CaptureRequest | ModelListRequest;
-export type Response = CaptureResponse | ModelListResponse;
+export interface FollowUpRequest {
+  type: 'FOLLOW_UP';
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  imageDataUrl: string;
+  systemPrompt: string;
+}
+
+export interface FollowUpResponse {
+  success: boolean;
+  markdown?: string;
+  error?: string;
+}
+
+export type Message = CaptureRequest | ModelListRequest | FollowUpRequest;
+export type Response = CaptureResponse | ModelListResponse | FollowUpResponse;

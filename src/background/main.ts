@@ -324,6 +324,63 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     return true; // Keep channel open for async response
   }
 
+  // Handle follow-up question
+  if (msg.type === 'FOLLOW_UP') {
+    console.log('[Background] Processing follow-up question');
+    (async () => {
+      const config = await getConfig();
+      if (!config?.baseUrl || !config?.apiKey || !config?.defaultModel) {
+        throw new Error('Missing configuration. Please configure API settings.');
+      }
+
+      const { messages, imageDataUrl, systemPrompt } = msg as { 
+        messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+        imageDataUrl: string;
+        systemPrompt: string;
+      };
+
+      const langInstruction = config.responseLanguage === 'en' 
+        ? ' Please respond in English.' 
+        : ' 请用中文回答。';
+      const fullSystemPrompt = (systemPrompt || DEFAULT_PROMPT) + langInstruction;
+
+      // Build ChatMessage array for multi-turn
+      const apiMessages: any[] = [];
+      
+      // First message includes image
+      if (messages.length > 0) {
+        const firstUserMsg = messages[0];
+        apiMessages.push({
+          role: "user",
+          content: [
+            { type: "text", text: fullSystemPrompt + "\n\n" + firstUserMsg.content },
+            { type: "image_url", image_url: { url: imageDataUrl } },
+          ],
+        } as any);
+
+        // Remaining messages are text-only
+        for (let i = 1; i < messages.length; i++) {
+          apiMessages.push({
+            role: messages[i].role,
+            content: messages[i].content,
+          } as any);
+        }
+      }
+
+      const { callMultiTurnChatCompletion } = await import('./apiClient');
+      const result = await callMultiTurnChatCompletion(config, apiMessages as any);
+
+      const response = { success: true, markdown: result };
+      sendResponse(response);
+    })().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Unexpected error';
+      const response = { success: false, error: message };
+      sendResponse(response);
+    });
+
+    return true; // Keep channel open for async response
+  }
+
   console.log('[Background] Unknown message type:', msg.type);
   return false;
 });

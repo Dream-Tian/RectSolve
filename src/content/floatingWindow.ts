@@ -314,6 +314,62 @@ const WINDOW_STYLES = `
   color: var(--rs-text-secondary);
   margin-bottom: 8px;
 }
+
+.rs-followup {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--rs-border);
+  background: var(--rs-bg);
+  flex-shrink: 0;
+}
+
+.rs-followup.hidden {
+  display: none;
+}
+
+.rs-followup-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--rs-border);
+  border-radius: 6px;
+  font-family: var(--rs-font);
+  font-size: 14px;
+  color: var(--rs-text);
+  background: var(--rs-bg);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.rs-followup-input:focus {
+  border-color: var(--rs-primary);
+}
+
+.rs-followup-input::placeholder {
+  color: var(--rs-text-secondary);
+}
+
+.rs-followup-send {
+  padding: 8px 16px;
+  background: var(--rs-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--rs-font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.rs-followup-send:hover {
+  background: var(--rs-primary-hover);
+}
+
+.rs-followup-send:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
 `;
 
 export class FloatingWindow {
@@ -325,6 +381,12 @@ export class FloatingWindow {
   private dragOffset = { x: 0, y: 0 };
   private mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
   private mouseUpHandler: (() => void) | null = null;
+  
+  // Multi-turn conversation state
+  private conversationMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  private currentImageUrl: string = '';
+  private currentSystemPrompt: string = '';
+  private lastMarkdown: string = '';
 
   constructor() {
     this.container = document.createElement('div');
@@ -386,6 +448,10 @@ export class FloatingWindow {
           </button>
         </div>
       </div>
+      <div class="rs-followup hidden">
+        <input type="text" class="rs-followup-input" placeholder="继续追问...（如：能换种解法吗）" />
+        <button class="rs-followup-send">发送</button>
+      </div>
     `;
 
     this.shadow.appendChild(windowEl);
@@ -395,6 +461,17 @@ export class FloatingWindow {
 
     windowEl.querySelector('.rs-close-btn')?.addEventListener('click', () => this.hide());
     windowEl.querySelector('#rs-copy')?.addEventListener('click', () => this.copyContent());
+    
+    // Follow-up send handler
+    const followupInput = windowEl.querySelector('.rs-followup-input') as HTMLInputElement;
+    const followupSend = windowEl.querySelector('.rs-followup-send') as HTMLButtonElement;
+    
+    followupSend?.addEventListener('click', () => this.sendFollowUp(followupInput));
+    followupInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.sendFollowUp(followupInput);
+      }
+    });
   }
 
   private bindEvents() {
@@ -482,10 +559,66 @@ export class FloatingWindow {
     setTimeout(() => {
       // Just hide, don't remove from DOM
       this.container.style.display = 'none';
-      // if (this.container.parentNode) {
-      //   this.container.parentNode.removeChild(this.container);
-      // }
+      // Clear conversation context on close
+      this.conversationMessages = [];
+      this.currentImageUrl = '';
+      this.currentSystemPrompt = '';
+      this.lastMarkdown = '';
+      // Hide follow-up input
+      const followup = this.shadow.querySelector('.rs-followup');
+      followup?.classList.add('hidden');
     }, 300);
+  }
+
+  private async sendFollowUp(input: HTMLInputElement) {
+    const question = input.value.trim();
+    if (!question || !this.currentImageUrl) return;
+
+    // Clear input
+    input.value = '';
+
+    // Add user question to conversation
+    this.conversationMessages.push({ role: 'user', content: question });
+
+    // Show loading
+    this.updateStatus('追问中...');
+    const sendBtn = this.shadow.querySelector('.rs-followup-send') as HTMLButtonElement;
+    if (sendBtn) sendBtn.disabled = true;
+
+    try {
+      // Call FOLLOW_UP API
+      const response = await chrome.runtime.sendMessage({
+        type: 'FOLLOW_UP',
+        messages: this.conversationMessages,
+        imageDataUrl: this.currentImageUrl,
+        systemPrompt: this.currentSystemPrompt
+      });
+
+      if (response && response.success && response.markdown) {
+        // Append new response to conversation (this is done in showContent)
+        // Append to content area instead of replacing
+        if (this.contentArea) {
+          const divider = document.createElement('div');
+          divider.innerHTML = '<hr style="border: none; border-top: 1px solid var(--rs-border); margin: 16px 0;">';
+          this.contentArea.appendChild(divider.firstChild!);
+          
+          const newContent = document.createElement('div');
+          newContent.innerHTML = await renderMarkdown(response.markdown);
+          Array.from(newContent.childNodes).forEach(node => this.contentArea!.appendChild(node));
+          
+          // Store assistant response
+          this.conversationMessages.push({ role: 'assistant', content: response.markdown });
+          this.lastMarkdown = response.markdown;
+        }
+        this.updateStatus('Done');
+      } else {
+        this.updateStatus(`追问失败: ${response?.error || '未知错误'}`);
+      }
+    } catch (error) {
+      this.updateStatus(`追问失败: ${(error as Error).message}`);
+    } finally {
+      if (sendBtn) sendBtn.disabled = false;
+    }
   }
 
   public showLoading() {
@@ -496,11 +629,12 @@ export class FloatingWindow {
     this.updateStatus("Processing...");
   }
 
-  public async showContent(markdown: string, saveToHistory: boolean = true, imageDataUrl?: string) {
+  public async showContent(markdown: string, saveToHistory: boolean = true, imageDataUrl?: string, systemPrompt?: string) {
     const loading = this.shadow.querySelector('.rs-loading');
     const content = this.shadow.querySelector('.rs-content');
     const preview = this.shadow.querySelector('.rs-preview');
     const previewImg = this.shadow.querySelector('.rs-preview-img') as HTMLImageElement;
+    const followup = this.shadow.querySelector('.rs-followup');
     
     loading?.classList.add('hidden');
     content?.classList.remove('hidden');
@@ -509,14 +643,35 @@ export class FloatingWindow {
     if (imageDataUrl && preview && previewImg) {
       previewImg.src = imageDataUrl;
       preview.classList.remove('hidden');
+      // Store for multi-turn conversation
+      this.currentImageUrl = imageDataUrl;
     } else {
       preview?.classList.add('hidden');
+    }
+
+    // Store system prompt for follow-ups
+    if (systemPrompt) {
+      this.currentSystemPrompt = systemPrompt;
     }
 
     if (this.contentArea) {
       try {
         this.contentArea.innerHTML = await renderMarkdown(markdown);
-        // Save to history only if requested
+        this.lastMarkdown = markdown;
+        
+        // Initialize conversation if this is first response
+        if (this.conversationMessages.length === 0 && this.currentImageUrl) {
+          this.conversationMessages.push({ role: 'user', content: '请解答这道题' });
+          this.conversationMessages.push({ role: 'assistant', content: markdown });
+          // Show follow-up input
+          followup?.classList.remove('hidden');
+        } else if (this.conversationMessages.length > 0) {
+          // Append assistant response for follow-up
+          this.conversationMessages.push({ role: 'assistant', content: markdown });
+          followup?.classList.remove('hidden');
+        }
+        
+        // Save to history only if requested (first response)
         if (saveToHistory) {
           this.saveToHistory(markdown, imageDataUrl);
         }
