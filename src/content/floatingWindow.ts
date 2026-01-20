@@ -16,7 +16,11 @@ const WINDOW_STYLES = `
 .rs-window {
   position: fixed;
   width: 500px;
-  max-height: 700px;
+  min-width: 300px;
+  max-width: 90vw;
+  height: auto;
+  min-height: 200px;
+  max-height: 90vh;
   background: var(--rs-bg);
   border: 1px solid var(--rs-border);
   box-shadow: var(--rs-shadow);
@@ -24,6 +28,7 @@ const WINDOW_STYLES = `
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -196,6 +201,22 @@ const WINDOW_STYLES = `
   min-height: 300px;
   color: var(--rs-text-secondary);
   gap: 16px;
+}
+
+.rs-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%);
+  border-bottom-right-radius: var(--rs-radius);
+  z-index: 10;
+}
+
+.rs-resize-handle:hover {
+  background: linear-gradient(135deg, transparent 50%, rgba(37, 99, 235, 0.5) 50%);
 }
 
 .hidden { display: none !important; }
@@ -382,6 +403,9 @@ export class FloatingWindow {
   private mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
   private mouseUpHandler: (() => void) | null = null;
   
+  private isResizing = false;
+  private resizeStart = { width: 0, height: 0, x: 0, y: 0 };
+  
   // Multi-turn conversation state
   private conversationMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   private currentImageUrl: string = '';
@@ -458,6 +482,7 @@ export class FloatingWindow {
         <input type="text" class="rs-followup-input" placeholder="继续追问...（如：能换种解法吗）" />
         <button class="rs-followup-send">发送</button>
       </div>
+      <div class="rs-resize-handle"></div>
     `;
 
     this.shadow.appendChild(windowEl);
@@ -483,6 +508,7 @@ export class FloatingWindow {
   private bindEvents() {
     if (!this.header) return;
 
+    // Dragging Logic
     this.header.addEventListener('mousedown', (e) => {
       this.isDragging = true;
       const win = this.shadow.querySelector('.rs-window') as HTMLElement;
@@ -491,22 +517,62 @@ export class FloatingWindow {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top
       };
+      e.preventDefault(); // Prevent text selection
+    });
+
+    // Resizing Logic
+    const resizeHandle = this.shadow.querySelector('.rs-resize-handle');
+    resizeHandle?.addEventListener('mousedown', (e) => {
+      // @ts-ignore
+      this.isResizing = true;
+      const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+      const rect = win.getBoundingClientRect();
+      // Store initial dimensions and mouse position
+      // @ts-ignore
+      this.resizeStart = {
+        width: rect.width,
+        height: rect.height,
+        x: (e as MouseEvent).clientX,
+        y: (e as MouseEvent).clientY
+      };
+      e.preventDefault();
+      e.stopPropagation(); // Prevent drag from triggering
     });
 
     this.mouseMoveHandler = (e: MouseEvent) => {
-      if (!this.isDragging) return;
       const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+      
+      // Handle Resizing
+      // @ts-ignore
+      if (this.isResizing) {
+        // @ts-ignore
+        const start = this.resizeStart;
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        
+        const newWidth = Math.max(300, start.width + dx);
+        const newHeight = Math.max(200, start.height + dy);
+        
+        win.style.width = `${newWidth}px`;
+        win.style.height = `${newHeight}px`;
+        return;
+      }
 
-      const x = Math.max(0, Math.min(e.clientX - this.dragOffset.x, window.innerWidth - win.offsetWidth));
-      const y = Math.max(0, Math.min(e.clientY - this.dragOffset.y, window.innerHeight - win.offsetHeight));
-
-      win.style.left = `${x}px`;
-      win.style.top = `${y}px`;
-      win.style.transform = 'none';
+      // Handle Dragging
+      if (this.isDragging) {
+        win.style.transform = 'none'; // reset transform to use absolute positioning
+        win.style.left = `${e.clientX - this.dragOffset.x}px`;
+        win.style.top = `${e.clientY - this.dragOffset.y}px`;
+        // Remove bottom/right if they were set by CSS to ensure left/top positioning works
+        win.style.bottom = 'auto';
+        win.style.right = 'auto';
+      }
     };
 
     this.mouseUpHandler = () => {
       this.isDragging = false;
+      // @ts-ignore
+      this.isResizing = false;
     };
 
     window.addEventListener('mousemove', this.mouseMoveHandler);
