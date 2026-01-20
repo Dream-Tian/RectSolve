@@ -408,6 +408,12 @@ export class FloatingWindow {
     style.textContent = WINDOW_STYLES;
     this.shadow.appendChild(style);
 
+    // Inject KaTeX CSS into Shadow DOM for proper formula rendering
+    const katexCss = document.createElement('link');
+    katexCss.rel = 'stylesheet';
+    katexCss.href = chrome.runtime.getURL('katex/katex.min.css');
+    this.shadow.appendChild(katexCss);
+
     const windowEl = document.createElement('div');
     windowEl.className = 'rs-window';
     windowEl.innerHTML = `
