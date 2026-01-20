@@ -1,4 +1,5 @@
 import { renderMarkdown } from './renderer';
+import { i18n } from '../utils/i18n';
 
 const WINDOW_STYLES = `
 :host {
@@ -464,9 +465,9 @@ export class FloatingWindow {
           <svg class="rs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--rs-primary);">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
           </svg>
-          <div class="rs-title">RectSolve AI</div>
+          <div class="rs-title">${i18n.t('app_name')}</div>
         </div>
-        <button class="rs-close-btn" title="关闭">
+        <button class="rs-close-btn" title="Close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -475,12 +476,12 @@ export class FloatingWindow {
       </div>
       <div class="rs-body">
         <div class="rs-preview hidden">
-          <div class="rs-preview-label">题目截图</div>
-          <img class="rs-preview-img" src="" alt="题目截图" />
+          <div class="rs-preview-label">${i18n.t('problem_screenshot')}</div>
+          <img class="rs-preview-img" src="" alt="Screenshot" />
         </div>
         <div class="rs-loading hidden">
           <div class="rs-morph-sq"></div>
-          <span class="rs-animating-dots">正在生成回答</span>
+          <span class="rs-animating-dots">${i18n.t('generating')}</span>
         </div>
         <div class="rs-content"></div>
       </div>
@@ -488,14 +489,17 @@ export class FloatingWindow {
         <span class="rs-status">Ready</span>
         <div class="rs-actions">
           <button class="rs-action-btn" id="rs-copy">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            复制
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            ${i18n.t('copy')}
           </button>
         </div>
       </div>
       <div class="rs-followup hidden">
-        <input type="text" class="rs-followup-input" placeholder="继续追问...（如：能换种解法吗）" />
-        <button class="rs-followup-send">发送</button>
+        <input type="text" class="rs-followup-input" placeholder="${i18n.t('follow_up_placeholder')}" />
+        <button class="rs-followup-send" disabled>${i18n.t('send')}</button>
       </div>
       <div class="rs-resize-handle"></div>
     `;
@@ -813,11 +817,15 @@ export class FloatingWindow {
     let shouldAnimate = false;
 
     if (text === 'Processing...' || text === '正在生成回答...') {
-      displayText = '正在生成回答';
+      displayText = i18n.t('generating');
       shouldAnimate = true;
     } else if (text === '追问中...') {
-      displayText = '追问中';
+      displayText = i18n.t('follow_uping');
       shouldAnimate = true;
+    } else if (text === 'Done' || text === 'Done') {
+      displayText = i18n.t('done');
+    } else if (text === 'Error') {
+      displayText = i18n.t('error');
     }
 
     status.textContent = displayText;
@@ -834,10 +842,10 @@ export class FloatingWindow {
     const text = this.contentArea.innerText;
     try {
       await navigator.clipboard.writeText(text);
-      this.updateStatus("已复制到剪贴板");
+      this.updateStatus(i18n.t('copied'));
       setTimeout(() => this.updateStatus("Done"), 2000);
     } catch (error) {
-      this.updateStatus("复制失败");
+      this.updateStatus(i18n.t('copy_failed'));
     }
   }
 

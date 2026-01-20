@@ -1,3 +1,5 @@
+import { i18n } from '../utils/i18n';
+
 // Inline storage functions to avoid chunk splitting
 const STORAGE_KEYS = {
   BASE_URL: 'baseUrl',
@@ -374,8 +376,8 @@ export class HistorySidebar {
       </div>
       <div class="sidebar-content">
         <div class="sidebar-tabs">
-          <button class="sidebar-tab active" data-tab="history">历史</button>
-          <button class="sidebar-tab" data-tab="settings">设置</button>
+          <button class="sidebar-tab active" data-tab="history">${i18n.t('history')}</button>
+          <button class="sidebar-tab" data-tab="settings">${i18n.t('settings')}</button>
           <button class="sidebar-close">×</button>
         </div>
         <div class="sidebar-body"></div>
@@ -429,6 +431,13 @@ export class HistorySidebar {
       this.hide();
       this.onClose();
   }
+  private updateStaticText() {
+    const historyTab = this.container.querySelector('.sidebar-tab[data-tab="history"]');
+    if (historyTab) historyTab.textContent = i18n.t('history');
+    const settingsTab = this.container.querySelector('.sidebar-tab[data-tab="settings"]');
+    if (settingsTab) settingsTab.textContent = i18n.t('settings');
+  }
+
   private async showSettings() {
     const body = this.container.querySelector('.sidebar-body') as HTMLElement;
     const config = await getConfig();
@@ -447,8 +456,17 @@ export class HistorySidebar {
             style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box;">
         </div>
 
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button id="settings-test" style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
+            测试连接
+          </button>
+          <button id="settings-fetch" disabled style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
+            获取模型
+          </button>
+        </div>
+
         <div style="margin-bottom: 12px;">
-          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">默认模型</label>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">${i18n.t('model_selection')}</label>
           <div class="custom-select" id="settings-model-wrapper">
              <div class="custom-select-trigger" id="settings-model-trigger">
                <span id="settings-model-text">请先测试连接</span>
@@ -462,33 +480,46 @@ export class HistorySidebar {
            </div>
         </div>
 
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <button id="settings-test" style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
-            测试连接
-          </button>
-          <button id="settings-fetch" disabled style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
-            获取模型
-          </button>
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">${i18n.t('answer_language')}</label>
+          <div class="custom-select" id="settings-lang-wrapper">
+             <div class="custom-select-trigger" id="settings-lang-trigger">
+               <span id="settings-lang-text">中文</span>
+               <svg class="custom-select-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8">
+                 <path fill="#374151" d="M1.41 0L6 4.59 10.59 0 12 1.41l-6 6-6-6z"/>
+               </svg>
+             </div>
+             <div class="custom-select-dropdown" id="settings-lang-dropdown">
+               <div class="custom-select-option" data-value="zh">中文</div>
+               <div class="custom-select-option" data-value="en">English</div>
+             </div>
+           </div>
         </div>
 
         <div style="margin-bottom: 12px;">
-          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">自定义 Prompt</label>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">${i18n.t('interface_language')}</label>
+          <div class="custom-select" id="settings-ui-lang-wrapper">
+             <div class="custom-select-trigger" id="settings-ui-lang-trigger">
+               <span id="settings-ui-lang-text">${i18n.language === 'zh' ? '中文' : 'English'}</span>
+               <svg class="custom-select-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8">
+                 <path fill="#374151" d="M1.41 0L6 4.59 10.59 0 12 1.41l-6 6-6-6z"/>
+               </svg>
+             </div>
+             <div class="custom-select-dropdown" id="settings-ui-lang-dropdown">
+               <div class="custom-select-option ${i18n.language === 'zh' ? 'selected' : ''}" data-value="zh">中文</div>
+               <div class="custom-select-option ${i18n.language === 'en' ? 'selected' : ''}" data-value="en">English</div>
+             </div>
+           </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">${i18n.t('system_prompt')}</label>
           <textarea id="settings-system-prompt" rows="4"
-            placeholder="留空使用默认 Prompt。示例：你是一个耐心的老师，请用简单易懂的语言解释..."
+            placeholder="${i18n.t('system_prompt_placeholder')}"
             style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
         </div>
 
-        <div style="margin-bottom: 12px;">
-          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">回答语言</label>
-          <div style="display: flex; gap: 8px;">
-            <button id="lang-zh" class="lang-btn" style="flex: 1; padding: 8px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.2s;">
-              中文
-            </button>
-            <button id="lang-en" class="lang-btn" style="flex: 1; padding: 8px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.2s;">
-              English
-            </button>
-          </div>
-        </div>
+
 
        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
           <label style="font-weight: 600; font-size: 15px;">启用智能框选</label>
@@ -627,31 +658,68 @@ export class HistorySidebar {
       });
     }
 
-    // Language selector
-    const langZhBtn = body.querySelector('#lang-zh') as HTMLButtonElement;
-    const langEnBtn = body.querySelector('#lang-en') as HTMLButtonElement;
-    let selectedLanguage = config.responseLanguage || 'zh';
-
-    const updateLanguageButtons = () => {
-      langZhBtn?.classList.toggle('selected', selectedLanguage === 'zh');
-      langEnBtn?.classList.toggle('selected', selectedLanguage === 'en');
+    // Generic Custom Select Binder
+    const bindSelect = (trigger: HTMLElement, dropdown: HTMLElement, textEl: HTMLElement, initialVal: string, onSelect: (val: string) => void) => {
+       if(!trigger || !dropdown) return;
+       
+       this.addEventListener(trigger, 'click', (e) => {
+         e.stopPropagation();
+         const isActive = dropdown.classList.contains('active');
+         // Close others
+         body.querySelectorAll('.custom-select-dropdown.active').forEach(el => {
+            if(el !== dropdown) el.classList.remove('active');
+         });
+         dropdown.classList.toggle('active', !isActive);
+         trigger.classList.toggle('active', !isActive);
+       });
+       
+       const options = dropdown.querySelectorAll('.custom-select-option');
+       options.forEach(opt => {
+         const val = opt.getAttribute('data-value') || '';
+         const optionText = opt.textContent;
+         // Set initial selected state
+         if (val === initialVal) {
+             options.forEach(o => o.classList.remove('selected'));
+             opt.classList.add('selected');
+             if (textEl) textEl.textContent = optionText;
+         }
+         
+         this.addEventListener(opt as HTMLElement, 'click', (e) => {
+           e.stopPropagation();
+           options.forEach(o => o.classList.remove('selected'));
+           opt.classList.add('selected');
+           if (textEl) textEl.textContent = optionText;
+           dropdown.classList.remove('active');
+           trigger.classList.remove('active');
+           onSelect(val);
+         });
+       });
+       
+       // Close on click outside
+       this.addEventListener(document, 'click', () => {
+         dropdown.classList.remove('active');
+         trigger.classList.remove('active');
+       });
     };
-    updateLanguageButtons();
 
-    if (langZhBtn) {
-      this.addEventListener(langZhBtn, 'click', async () => {
-        selectedLanguage = 'zh';
-        updateLanguageButtons();
-        await saveConfig({ responseLanguage: 'zh' });
-      });
-    }
-    if (langEnBtn) {
-      this.addEventListener(langEnBtn, 'click', async () => {
-        selectedLanguage = 'en';
-        updateLanguageButtons();
-        await saveConfig({ responseLanguage: 'en' });
-      });
-    }
+    // Bind Answer Language
+    const langTrigger = body.querySelector('#settings-lang-trigger') as HTMLElement;
+    const langDropdown = body.querySelector('#settings-lang-dropdown') as HTMLElement;
+    const langText = body.querySelector('#settings-lang-text') as HTMLElement;
+    bindSelect(langTrigger, langDropdown, langText, config.responseLanguage || 'zh', async (val) => {
+       await saveConfig({ responseLanguage: val });
+    });
+
+    // Bind UI Language
+    const uiLangTrigger = body.querySelector('#settings-ui-lang-trigger') as HTMLElement;
+    const uiLangDropdown = body.querySelector('#settings-ui-lang-dropdown') as HTMLElement;
+    const uiLangText = body.querySelector('#settings-ui-lang-text') as HTMLElement;
+    bindSelect(uiLangTrigger, uiLangDropdown, uiLangText, i18n.language, async (val) => {
+       i18n.setLanguage(val as any);
+       this.showSettings(); // Refresh settings UI to show new language
+       // Also update the sidebar header
+       this.updateStaticText();
+    });
 
     // Load and display statistics
     const statsTotalEl = body.querySelector('#stats-total') as HTMLElement;
