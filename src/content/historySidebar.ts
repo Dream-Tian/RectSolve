@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   THEME: 'theme',
   SMART_SELECTION: 'smartSelection',
   SYSTEM_PROMPT: 'systemPrompt',
-  RESPONSE_LANGUAGE: 'responseLanguage'
+  RESPONSE_LANGUAGE: 'responseLanguage',
+  UI_OPACITY: 'uiOpacity'
 } as const;
 
 // Config cache to reduce storage reads
@@ -22,6 +23,7 @@ let configCache: {
   smartSelection: boolean;
   systemPrompt: string;
   responseLanguage: string;
+  uiOpacity: number;
 } | null = null;
 
 async function getConfig() {
@@ -37,7 +39,8 @@ async function getConfig() {
     STORAGE_KEYS.THEME,
     STORAGE_KEYS.SMART_SELECTION,
     STORAGE_KEYS.SYSTEM_PROMPT,
-    STORAGE_KEYS.RESPONSE_LANGUAGE
+    STORAGE_KEYS.RESPONSE_LANGUAGE,
+    STORAGE_KEYS.UI_OPACITY
   ]);
 
   configCache = {
@@ -48,14 +51,15 @@ async function getConfig() {
     theme: result[STORAGE_KEYS.THEME] || 'light',
     smartSelection: result[STORAGE_KEYS.SMART_SELECTION] !== false,
     systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || '',
-    responseLanguage: result[STORAGE_KEYS.RESPONSE_LANGUAGE] || 'zh'
+    responseLanguage: result[STORAGE_KEYS.RESPONSE_LANGUAGE] || 'zh',
+    uiOpacity: result[STORAGE_KEYS.UI_OPACITY] !== undefined ? result[STORAGE_KEYS.UI_OPACITY] : 1
   };
 
   return configCache;
 }
 
-async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string; responseLanguage?: string }) {
-  const toSave: Record<string, string | boolean> = {};
+async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string; responseLanguage?: string; uiOpacity?: number }) {
+  const toSave: Record<string, string | boolean | number> = {};
 
   if (config.baseUrl !== undefined) {
     toSave[STORAGE_KEYS.BASE_URL] = config.baseUrl;
@@ -80,6 +84,9 @@ async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultMo
   }
   if (config.responseLanguage !== undefined) {
     toSave[STORAGE_KEYS.RESPONSE_LANGUAGE] = config.responseLanguage;
+  }
+  if (config.uiOpacity !== undefined) {
+    toSave[STORAGE_KEYS.UI_OPACITY] = config.uiOpacity;
   }
 
   await chrome.storage.sync.set(toSave);
@@ -121,7 +128,7 @@ export class HistorySidebar {
           transform: translate(120%, -50%); /* Start off-screen (right) */
           height: 70vh;
           width: 320px;
-          background: white;
+          background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1));
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
           z-index: 2147483647;
           display: flex;
@@ -234,7 +241,7 @@ export class HistorySidebar {
 
         /* Dark Mode */
         .rectsolve-dark-theme .rectsolve-sidebar {
-            background: #1f2937;
+            background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1));
             border-color: #374151;
         }
         .rectsolve-dark-theme .sidebar-tabs {
@@ -315,7 +322,7 @@ export class HistorySidebar {
           color: #374151;
           height: 38px;
           line-height: 22px;
-          background: #ffffff;
+          background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1));
           border: 1px solid #e5e7eb;
           border-radius: 6px;
           cursor: pointer;
@@ -331,7 +338,8 @@ export class HistorySidebar {
         .custom-select-trigger.active .custom-select-arrow { transform: rotate(180deg); }
         .custom-select-dropdown {
           position: absolute; display: block; top: 100%; left: 0; right: 0;
-          border: 1px solid #e5e7eb; border-radius: 6px; background: #fff;
+          border: 1px solid #e5e7eb; border-radius: 6px;
+          background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1));
           font-weight: 300; color: #374151; z-index: 9999; margin-top: 4px;
           opacity: 0; visibility: hidden; transform: translateY(-10px);
           transition: all 0.2s cubic-bezier(0.5, 0, 0, 1.25);
@@ -348,28 +356,61 @@ export class HistorySidebar {
         .rectsolve-switch input:checked + .rectsolve-slider { background-color: #2563eb !important; }
         .rectsolve-switch input:focus + .rectsolve-slider { box-shadow: 0 0 1px #2563eb; }
         .rectsolve-switch input:checked + .rectsolve-slider:before { transform: translateX(20px); }
-        .shortcut-box { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-family: system-ui, -apple-system, sans-serif; font-weight: 500; font-size: 13px; color: #374151; min-width: 100px; text-align: center; background: #fff; display: inline-block; }
-        .position-btn.selected, .theme-btn.selected, .lang-btn.selected { background-color: #eff6ff !important; color: #2563eb !important; border-color: #2563eb !important; }
-        .shortcuts-container button:hover { background-color: #f3f4f6 !important; }
-        .rectsolve-dark-theme .custom-select-trigger, .rectsolve-dark-theme .custom-select-dropdown { background: #374151; border-color: #4b5563; color: #e5e7eb; }
-        .rectsolve-dark-theme .custom-select-option:hover { background-color: #4b5563; color: #f3f4f6; }
-        .rectsolve-dark-theme .custom-select-option.selected { background-color: #1f2937; color: #60a5fa; }
-        .rectsolve-dark-theme .rectsolve-sidebar input[type="text"], .rectsolve-dark-theme .rectsolve-sidebar input[type="password"] { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar button { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+        .shortcut-box { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-family: system-ui, -apple-system, sans-serif; font-weight: 500; font-size: 13px; color: #374151; min-width: 100px; text-align: center; background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1)); display: inline-block; }
+        .position-btn.selected, .theme-btn.selected, .lang-btn.selected { background-color: rgba(239, 246, 255, var(--rs-sidebar-opacity, 1)) !important; color: #2563eb !important; border-color: #2563eb !important; }
+        .shortcuts-container button:hover { background-color: rgba(243, 244, 246, var(--rs-sidebar-opacity, 1)) !important; }
+        .rectsolve-dark-theme .custom-select-trigger, .rectsolve-dark-theme .custom-select-dropdown { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)); border-color: #4b5563; color: #e5e7eb; }
+        .rectsolve-dark-theme .custom-select-option:hover { background-color: rgba(75, 85, 99, var(--rs-sidebar-opacity, 1)); color: #f3f4f6; }
+        .rectsolve-dark-theme .custom-select-option.selected { background-color: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)); color: #60a5fa; }
+        .rectsolve-dark-theme .rectsolve-sidebar input[type="text"], .rectsolve-dark-theme .rectsolve-sidebar input[type="password"] { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar button { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .sidebar-tab, .rectsolve-dark-theme .rectsolve-sidebar .sidebar-close { background: transparent !important; border-color: transparent !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .sidebar-tab.active { border-bottom: 2px solid #60a5fa !important; color: #60a5fa !important; border-color: transparent transparent #60a5fa transparent !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .custom-select-arrow path { fill: #9ca3af !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar .shortcut-box { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
-        .rectsolve-dark-theme .position-btn.selected, .rectsolve-dark-theme .theme-btn.selected, .rectsolve-dark-theme .lang-btn.selected { background-color: #1f2937 !important; border-color: #60a5fa !important; color: #60a5fa !important; }
-        .rectsolve-dark-theme .shortcuts-container { background: #1f2937 !important; border-color: #4b5563 !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar .shortcut-box { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+        .rectsolve-dark-theme .position-btn.selected, .rectsolve-dark-theme .theme-btn.selected, .rectsolve-dark-theme .lang-btn.selected { background-color: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #60a5fa !important; color: #60a5fa !important; }
+        .rectsolve-dark-theme .shortcuts-container { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar span { color: #9ca3af !important; }
         .rectsolve-dark-theme .rectsolve-sidebar label { color: #e5e7eb !important; }
         .rectsolve-dark-theme .rectsolve-sidebar #stats-total { color: #60a5fa !important; }
         .rectsolve-dark-theme .rectsolve-sidebar #stats-today { color: #34d399 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar #stats-first-use { color: #e5e7eb !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar [style*="background: #f9fafb"] { background: #374151 !important; border-color: #4b5563 !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar [style*="background: #f9fafb"] { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar [style*="color: #6b7280"] { color: #9ca3af !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar textarea { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar textarea { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+
+        /* Custom Range Slider */
+        .custom-range {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 6px;
+          background: #e5e7eb;
+          border-radius: 3px;
+          outline: none;
+          margin: 0;
+        }
+        .custom-range::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #2563eb;
+          cursor: pointer;
+          transition: background .15s ease-in-out;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .custom-range::-webkit-slider-thumb:hover {
+          background: #1d4ed8;
+        }
+        .rectsolve-dark-theme .custom-range {
+          background: #4b5563;
+        }
+        .rectsolve-dark-theme .custom-range::-webkit-slider-thumb {
+          background: #60a5fa;
+        }
+        .rectsolve-dark-theme .custom-range::-webkit-slider-thumb:hover {
+          background: #3b82f6;
+        }
       </style>
       <div class="sidebar-header">
         <div class="sidebar-title">RectSolve</div>
@@ -409,6 +450,13 @@ export class HistorySidebar {
     });
 
     document.body.appendChild(this.container);
+
+    // Initialize opacity
+    getConfig().then(config => {
+        if (config.uiOpacity !== undefined) {
+            this.container.style.setProperty('--rs-sidebar-opacity', String(config.uiOpacity));
+        }
+    });
   }
 
   private addEventListener(element: EventTarget, event: string, handler: EventListenerOrEventListenerObject, isTemp: boolean = false) {
@@ -457,10 +505,10 @@ export class HistorySidebar {
         </div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <button id="settings-test" style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
+          <button id="settings-test" style="flex: 1; padding: 10px; background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1)); color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
             测试连接
           </button>
-          <button id="settings-fetch" disabled style="flex: 1; padding: 10px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
+          <button id="settings-fetch" disabled style="flex: 1; padding: 10px; background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1)); color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 15px;">
             获取模型
           </button>
         </div>
@@ -555,6 +603,14 @@ export class HistorySidebar {
         </div>
 
         <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">界面透明度</label>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <input type="range" id="settings-opacity" min="0.2" max="1" step="0.05" class="custom-range" style="flex: 1;">
+            <span id="settings-opacity-value" style="font-size: 14px; font-weight: 500; min-width: 40px; text-align: right;">100%</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
            <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">快捷键</label>
            <div style="margin-top: 12px;">
               <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
@@ -636,6 +692,8 @@ export class HistorySidebar {
     const positionLeftBtn = body.querySelector('#position-left') as HTMLButtonElement;
     const themeLightBtn = body.querySelector('#theme-light') as HTMLButtonElement;
     const themeDarkBtn = body.querySelector('#theme-dark') as HTMLButtonElement;
+    const opacityInput = body.querySelector('#settings-opacity') as HTMLInputElement;
+    const opacityValue = body.querySelector('#settings-opacity-value') as HTMLElement;
     const openShortcutsBtn = body.querySelector('#open-shortcuts') as HTMLButtonElement;
     const shortcutSelectionEl = body.querySelector('#shortcut-start-selection') as HTMLElement;
     const shortcutHistoryEl = body.querySelector('#shortcut-open-history') as HTMLElement;
@@ -787,6 +845,23 @@ export class HistorySidebar {
             console.error('[HistorySidebar] Failed to save smart selection config:', error);
             this.showSettingsStatus(statusDiv, '保存失败', 'error');
         }
+      });
+    }
+
+    if (opacityInput) {
+      const currentOpacity = config.uiOpacity !== undefined ? config.uiOpacity : 1;
+      opacityInput.value = String(currentOpacity);
+      if (opacityValue) opacityValue.textContent = `${Math.round(currentOpacity * 100)}%`;
+
+      this.addEventListener(opacityInput, 'input', () => {
+         const val = parseFloat(opacityInput.value);
+         if (opacityValue) opacityValue.textContent = `${Math.round(val * 100)}%`;
+         this.container.style.setProperty('--rs-sidebar-opacity', String(val));
+      });
+
+      this.addEventListener(opacityInput, 'change', async () => {
+         const val = parseFloat(opacityInput.value);
+         await saveConfig({ uiOpacity: val });
       });
     }
 

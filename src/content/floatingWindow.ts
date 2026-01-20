@@ -5,7 +5,9 @@ const WINDOW_STYLES = `
 :host {
   --rs-primary: #2563eb;
   --rs-primary-hover: #1d4ed8;
-  --rs-bg: #ffffff;
+  --rs-bg-rgb: 255, 255, 255;
+  --rs-opacity: 1;
+  --rs-bg: rgba(var(--rs-bg-rgb), var(--rs-opacity));
   --rs-text: #111827;
   --rs-text-secondary: #6b7280;
   --rs-border: #e5e7eb;
@@ -44,7 +46,7 @@ const WINDOW_STYLES = `
 }
 
 .rs-header {
-  background: #ffffff;
+  background: var(--rs-bg);
   padding: 14px 16px;
   border-bottom: 1px solid var(--rs-border);
   display: flex;
@@ -91,7 +93,7 @@ const WINDOW_STYLES = `
   padding: 0;
   min-height: 100px;
   position: relative;
-  background: #ffffff;
+  background: var(--rs-bg);
 }
 
 .rs-content {
@@ -121,7 +123,7 @@ const WINDOW_STYLES = `
 .rs-content h3 { font-size: 1.1em; }
 
 .rs-content code {
-  background: #f1f5f9;
+  background: rgba(241, 245, 249, var(--rs-opacity));
   padding: 2px 6px;
   border-radius: 4px;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
@@ -130,7 +132,7 @@ const WINDOW_STYLES = `
 }
 
 .rs-content pre {
-  background: #f8fafc;
+  background: rgba(248, 250, 252, var(--rs-opacity));
   border: 1px solid var(--rs-border);
   color: #334155;
   padding: 12px;
@@ -176,7 +178,7 @@ const WINDOW_STYLES = `
 }
 
 .rs-content th {
-  background: #f8fafc;
+  background: rgba(248, 250, 252, var(--rs-opacity));
   font-weight: 600;
   color: var(--rs-text);
 }
@@ -224,7 +226,7 @@ const WINDOW_STYLES = `
 
 .rs-footer {
   padding: 12px 16px;
-  background: #ffffff;
+  background: var(--rs-bg);
   border-top: 1px solid var(--rs-border);
   display: flex;
   justify-content: space-between;
@@ -250,7 +252,7 @@ const WINDOW_STYLES = `
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: white;
+  background: var(--rs-bg);
   border: 1px solid var(--rs-border);
   border-radius: 6px;
   font-size: 13px;
@@ -328,7 +330,7 @@ const WINDOW_STYLES = `
 .rs-preview {
   padding: 12px 20px 0 20px;
   border-bottom: 1px solid var(--rs-border);
-  background: #f9fafb;
+  background: rgba(249, 250, 251, var(--rs-opacity));
 }
 
 .rs-preview.hidden {
@@ -444,6 +446,7 @@ export class FloatingWindow {
     this.shadow = this.container.attachShadow({ mode: 'open' });
     this.renderInitialUI();
     this.bindEvents();
+    this.initializeConfig();
   }
 
   private renderInitialUI() {
@@ -899,6 +902,42 @@ export class FloatingWindow {
     } catch (error) {
       console.error('[FloatingWindow] Failed to update stats:', error);
     }
+  }
+
+  private async initializeConfig() {
+    try {
+      const result = await chrome.storage.sync.get(['uiOpacity', 'theme']);
+      if (result.uiOpacity !== undefined) this.updateOpacity(result.uiOpacity);
+      if (result.theme) this.updateTheme(result.theme);
+
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync') {
+          if (changes.uiOpacity) this.updateOpacity(changes.uiOpacity.newValue);
+          if (changes.theme) this.updateTheme(changes.theme.newValue);
+        }
+      });
+    } catch (e) {
+      console.error('Config init error', e);
+    }
+  }
+
+  private updateOpacity(val: number) {
+      this.container.style.setProperty('--rs-opacity', String(val));
+  }
+
+  private updateTheme(theme: string) {
+      const isDark = theme === 'dark';
+      if (isDark) {
+          this.container.style.setProperty('--rs-bg-rgb', '31, 41, 55');
+          this.container.style.setProperty('--rs-text', '#f3f4f6');
+          this.container.style.setProperty('--rs-text-secondary', '#9ca3af');
+          this.container.style.setProperty('--rs-border', '#374151');
+      } else {
+          this.container.style.setProperty('--rs-bg-rgb', '255, 255, 255');
+          this.container.style.setProperty('--rs-text', '#111827');
+          this.container.style.setProperty('--rs-text-secondary', '#6b7280');
+          this.container.style.setProperty('--rs-border', '#e5e7eb');
+      }
   }
 
   private async getHistory(): Promise<Array<{ markdown: string; imageDataUrl?: string; timestamp: number }>> {

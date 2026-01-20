@@ -17,6 +17,36 @@ export class ActionButtons {
     this.position = position;
     this.container = this.createButtons();
     this.bindEvents();
+    this.initializeConfig();
+  }
+
+  private async initializeConfig() {
+    try {
+      const result = await chrome.storage.sync.get(['uiOpacity', 'theme']);
+      if (result.uiOpacity !== undefined) this.updateOpacity(result.uiOpacity);
+      if (result.theme) this.updateTheme(result.theme);
+
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync') {
+          if (changes.uiOpacity) this.updateOpacity(changes.uiOpacity.newValue);
+          if (changes.theme) this.updateTheme(changes.theme.newValue);
+        }
+      });
+    } catch (e) {
+      console.error('[ActionButtons] Config init error', e);
+    }
+  }
+
+  private updateOpacity(val: number) {
+      this.container.style.setProperty('--rs-opacity', String(val));
+  }
+
+  private updateTheme(theme: string) {
+      if (theme === 'dark') {
+          this.container.classList.add('rectsolve-dark-theme');
+      } else {
+          this.container.classList.remove('rectsolve-dark-theme');
+      }
   }
 
   private createButtons(): HTMLDivElement {
@@ -29,7 +59,7 @@ export class ActionButtons {
       <style>
         /* Dark theme for action buttons */
         .rectsolve-dark-theme #rectsolve-action-buttons .action-buttons-wrapper {
-          background: #1f2937;
+          background: rgba(31, 41, 55, var(--rs-opacity, 1));
           border-color: #374151;
           box-shadow: -2px 0 8px rgba(0, 0, 0, 0.5);
         }
@@ -40,7 +70,7 @@ export class ActionButtons {
         }
 
         .rectsolve-dark-theme .action-btn {
-          background: #1f2937 !important;
+          background: transparent !important;
           color: #d1d5db !important;
           border-color: #374151 !important;
         }
@@ -81,7 +111,7 @@ export class ActionButtons {
         }
 
         .action-buttons-wrapper {
-          background: white;
+          background: rgba(255, 255, 255, var(--rs-opacity, 1));
           border: 1px solid #e5e7eb;
           border-right: none;
           border-radius: 8px 0 0 8px;
@@ -94,7 +124,7 @@ export class ActionButtons {
         .action-btn {
           width: 48px;
           height: 48px;
-          background: white;
+          background: transparent;
           border: none;
           border-bottom: 1px solid #e5e7eb;
           display: flex;
