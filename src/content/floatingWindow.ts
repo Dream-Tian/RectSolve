@@ -494,6 +494,9 @@ export class FloatingWindow {
   private currentSystemPrompt: string = '';
   private lastMarkdown: string = '';
 
+  // Event listener tracking for proper cleanup
+  private eventListeners: Array<{ element: EventTarget; event: string; handler: EventListenerOrEventListenerObject }> = [];
+
   constructor() {
     this.container = document.createElement('div');
     this.container.id = 'rect-solve-host';
@@ -621,32 +624,53 @@ export class FloatingWindow {
     this.contentArea = windowEl.querySelector('.rs-content');
     this.header = windowEl.querySelector('.rs-header');
 
-    windowEl.querySelector('.rs-close-btn')?.addEventListener('click', () => this.hide());
-    windowEl.querySelector('#rs-copy')?.addEventListener('click', () => this.copyContent());
+    // Track all event listeners for proper cleanup
+    const closeBtn = windowEl.querySelector('.rs-close-btn');
+    if (closeBtn) {
+      const closeHandler = () => this.hide();
+      closeBtn.addEventListener('click', closeHandler);
+      this.eventListeners.push({ element: closeBtn, event: 'click', handler: closeHandler });
+    }
+    
+    const copyBtn = windowEl.querySelector('#rs-copy');
+    if (copyBtn) {
+      const copyHandler = () => this.copyContent();
+      copyBtn.addEventListener('click', copyHandler);
+      this.eventListeners.push({ element: copyBtn, event: 'click', handler: copyHandler });
+    }
     
     // Follow-up send handler
     const followupInput = windowEl.querySelector('.rs-followup-input') as HTMLInputElement;
     const followupSend = windowEl.querySelector('.rs-followup-send') as HTMLButtonElement;
     
-    followupSend?.addEventListener('click', () => this.sendFollowUp(followupInput));
-    followupInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.sendFollowUp(followupInput);
-      }
-    });
+    if (followupSend) {
+      const sendHandler = () => this.sendFollowUp(followupInput);
+      followupSend.addEventListener('click', sendHandler);
+      this.eventListeners.push({ element: followupSend, event: 'click', handler: sendHandler });
+    }
+    
+    if (followupInput) {
+      const keypressHandler = (e: Event) => {
+        if ((e as KeyboardEvent).key === 'Enter') {
+          this.sendFollowUp(followupInput);
+        }
+      };
+      followupInput.addEventListener('keypress', keypressHandler);
+      this.eventListeners.push({ element: followupInput, event: 'keypress', handler: keypressHandler });
+    }
 
     // Quick actions handlers
     const chips = windowEl.querySelectorAll('.rs-chip-mini');
     chips.forEach(chip => {
-        chip.addEventListener('click', () => {
+        const chipHandler = () => {
             const text = chip.textContent;
-            if (text) {
-                // Set text to input but maybe just send directly?
-                // User requirement: "Click to ask"
+            if (text && followupInput) {
                 followupInput.value = text;
                 this.sendFollowUp(followupInput);
             }
-        });
+        };
+        chip.addEventListener('click', chipHandler);
+        this.eventListeners.push({ element: chip, event: 'click', handler: chipHandler });
     });
   }
 
@@ -654,35 +678,41 @@ export class FloatingWindow {
     if (!this.header) return;
 
     // Dragging Logic
-    this.header.addEventListener('mousedown', (e) => {
+    const dragHandler = (e: Event) => {
       this.isDragging = true;
       const win = this.shadow.querySelector('.rs-window') as HTMLElement;
       const rect = win.getBoundingClientRect();
       this.dragOffset = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e as MouseEvent).clientX - rect.left,
+        y: (e as MouseEvent).clientY - rect.top
       };
       e.preventDefault(); // Prevent text selection
-    });
+    };
+    this.header.addEventListener('mousedown', dragHandler);
+    this.eventListeners.push({ element: this.header, event: 'mousedown', handler: dragHandler });
 
     // Resizing Logic
     const resizeHandle = this.shadow.querySelector('.rs-resize-handle');
-    resizeHandle?.addEventListener('mousedown', (e) => {
-      // @ts-ignore
-      this.isResizing = true;
-      const win = this.shadow.querySelector('.rs-window') as HTMLElement;
-      const rect = win.getBoundingClientRect();
-      // Store initial dimensions and mouse position
-      // @ts-ignore
-      this.resizeStart = {
-        width: rect.width,
-        height: rect.height,
-        x: (e as MouseEvent).clientX,
-        y: (e as MouseEvent).clientY
+    if (resizeHandle) {
+      const resizeHandler = (e: Event) => {
+        // @ts-ignore
+        this.isResizing = true;
+        const win = this.shadow.querySelector('.rs-window') as HTMLElement;
+        const rect = win.getBoundingClientRect();
+        // Store initial dimensions and mouse position
+        // @ts-ignore
+        this.resizeStart = {
+          width: rect.width,
+          height: rect.height,
+          x: (e as MouseEvent).clientX,
+          y: (e as MouseEvent).clientY
+        };
+        e.preventDefault();
+        e.stopPropagation(); // Prevent drag from triggering
       };
-      e.preventDefault();
-      e.stopPropagation(); // Prevent drag from triggering
-    });
+      resizeHandle.addEventListener('mousedown', resizeHandler);
+      this.eventListeners.push({ element: resizeHandle, event: 'mousedown', handler: resizeHandler });
+    }
 
     this.mouseMoveHandler = (e: MouseEvent) => {
       const win = this.shadow.querySelector('.rs-window') as HTMLElement;
@@ -725,6 +755,7 @@ export class FloatingWindow {
   }
 
   public cleanup() {
+    // Remove global window listeners
     if (this.mouseMoveHandler) {
       window.removeEventListener('mousemove', this.mouseMoveHandler);
       this.mouseMoveHandler = null;
@@ -733,6 +764,12 @@ export class FloatingWindow {
       window.removeEventListener('mouseup', this.mouseUpHandler);
       this.mouseUpHandler = null;
     }
+    
+    // Remove all tracked event listeners
+    this.eventListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.eventListeners = [];
   }
 
   public show(x: number, y: number) {
