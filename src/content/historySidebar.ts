@@ -1006,6 +1006,11 @@ export class HistorySidebar {
 
   private async getHistory(): Promise<Array<{ markdown: string; timestamp: number }>> {
     try {
+      // Check if chrome.storage is available (may be undefined after extension reload)
+      if (!chrome?.storage?.local) {
+        console.warn('[HistorySidebar] chrome.storage.local not available');
+        return [];
+      }
       const result = await chrome.storage.local.get('rectsolve_history');
       const data = result.rectsolve_history;
       return data ? JSON.parse(data) : [];
