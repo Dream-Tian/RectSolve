@@ -560,8 +560,32 @@ export class HistorySidebar {
               <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">今日解题</div>
             </div>
             <div style="text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-              <div id="stats-first-use" style="font-size: 14px; font-weight: 600; color: #374151;">-</div>
+              <div id="stats-first-use" style="font-size: 14px; font-weight: 600; color: #374151; min-height: 29px; display: flex; align-items: center; justify-content: center;">-</div>
               <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">首次使用</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 15px; text-align: left;">Token 消耗</label>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <div style="text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-total-tokens" style="font-size: 18px; font-weight: 700; color: #7c3aed;">0</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">累计 Token</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-today-tokens" style="font-size: 18px; font-weight: 700; color: #f59e0b;">0</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">今日 Token</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px;">
+            <div style="text-align: center; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-prompt-tokens" style="font-size: 14px; font-weight: 600; color: #6366f1;">0</div>
+              <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">累计 Prompt</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div id="stats-completion-tokens" style="font-size: 14px; font-weight: 600; color: #ec4899;">0</div>
+              <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">累计 Completion</div>
             </div>
           </div>
         </div>
@@ -656,6 +680,34 @@ export class HistorySidebar {
       }
     };
     loadStats();
+
+    // Load token stats
+    const statsTotalTokensEl = body.querySelector('#stats-total-tokens') as HTMLElement;
+    const statsTodayTokensEl = body.querySelector('#stats-today-tokens') as HTMLElement;
+    const statsPromptTokensEl = body.querySelector('#stats-prompt-tokens') as HTMLElement;
+    const statsCompletionTokensEl = body.querySelector('#stats-completion-tokens') as HTMLElement;
+
+    const loadTokenStats = async () => {
+      try {
+        const result = await chrome.storage.local.get('rectsolve_token_stats');
+        if (result.rectsolve_token_stats) {
+          const stats = JSON.parse(result.rectsolve_token_stats);
+          const today = new Date().toISOString().split('T')[0];
+          
+          if (statsTotalTokensEl) statsTotalTokensEl.textContent = (stats.totalTokens || 0).toLocaleString();
+          if (statsTodayTokensEl) {
+            statsTodayTokensEl.textContent = stats.todayDate === today 
+              ? (stats.todayTokens || 0).toLocaleString() 
+              : '0';
+          }
+          if (statsPromptTokensEl) statsPromptTokensEl.textContent = (stats.totalPromptTokens || 0).toLocaleString();
+          if (statsCompletionTokensEl) statsCompletionTokensEl.textContent = (stats.totalCompletionTokens || 0).toLocaleString();
+        }
+      } catch (error) {
+        console.error('[HistorySidebar] Failed to load token stats:', error);
+      }
+    };
+    loadTokenStats();
 
     if (smartSelectionCheckbox) {
       this.addEventListener(smartSelectionCheckbox, 'change', async () => {

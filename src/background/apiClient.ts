@@ -10,8 +10,15 @@ export type ChatMessage =
       >;
     };
 
+export type TokenUsage = {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+};
+
 type ChatCompletionResponse = {
   choices?: Array<{ message?: { content?: string } }>;
+  usage?: TokenUsage;
   error?: { message?: string; type?: string; code?: string };
 };
 
@@ -81,7 +88,7 @@ export async function callVisionChatCompletion(
   imageDataUrl: string,
   prompt: string,
   timeoutMs = 60000
-): Promise<string> {
+): Promise<{ content: string; usage?: TokenUsage }> {
   return retryWithBackoff(async () => {
     const url = config.baseUrl + "/chat/completions";
     const controller = new AbortController();
@@ -120,7 +127,7 @@ export async function callVisionChatCompletion(
       if (!content) {
         throw new Error("Empty response");
       }
-      return content;
+      return { content, usage: data.usage };
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
         throw new Error("Request timeout");
@@ -136,7 +143,7 @@ export async function callMultiTurnChatCompletion(
   config: Config,
   messages: ChatMessage[],
   timeoutMs = 60000
-): Promise<string> {
+): Promise<{ content: string; usage?: TokenUsage }> {
   return retryWithBackoff(async () => {
     const url = config.baseUrl + "/chat/completions";
     const controller = new AbortController();
@@ -165,7 +172,7 @@ export async function callMultiTurnChatCompletion(
       if (!content) {
         throw new Error("Empty response");
       }
-      return content;
+      return { content, usage: data.usage };
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
         throw new Error("Request timeout");

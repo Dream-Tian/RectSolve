@@ -85,6 +85,45 @@ const DEFAULT_PROMPT =
 // Cache for screenshots to solve permission issues with activeTab
 const screenshotCache = new Map<number, string>();
 
+// Helper to accumulate token stats in storage
+async function updateTokenStats(usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
+  try {
+    const result = await chrome.storage.local.get('rectsolve_token_stats');
+    const today = new Date().toISOString().split('T')[0];
+    
+    let stats = result.rectsolve_token_stats ? JSON.parse(result.rectsolve_token_stats) : {
+      totalPromptTokens: 0,
+      totalCompletionTokens: 0,
+      totalTokens: 0,
+      todayPromptTokens: 0,
+      todayCompletionTokens: 0,
+      todayTokens: 0,
+      todayDate: today
+    };
+
+    // Reset daily stats if date changed
+    if (stats.todayDate !== today) {
+      stats.todayPromptTokens = 0;
+      stats.todayCompletionTokens = 0;
+      stats.todayTokens = 0;
+      stats.todayDate = today;
+    }
+
+    // Accumulate
+    stats.totalPromptTokens += usage.prompt_tokens;
+    stats.totalCompletionTokens += usage.completion_tokens;
+    stats.totalTokens += usage.total_tokens;
+    stats.todayPromptTokens += usage.prompt_tokens;
+    stats.todayCompletionTokens += usage.completion_tokens;
+    stats.todayTokens += usage.total_tokens;
+
+    await chrome.storage.local.set({ rectsolve_token_stats: JSON.stringify(stats) });
+    console.log('[Background] Token stats updated:', stats);
+  } catch (error) {
+    console.error('[Background] Failed to update token stats:', error);
+  }
+}
+
 // Handle keyboard shortcuts
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('[RectSolve Background] Command received:', command);
@@ -313,7 +352,12 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       const prompt = basePrompt + langInstruction;
       const result = await callVisionChatCompletion(config, imageDataUrl, prompt);
 
-      const response: CaptureResponse = { success: true, markdown: result, imageDataUrl };
+      // Accumulate token stats
+      if (result.usage) {
+        await updateTokenStats(result.usage);
+      }
+
+      const response: CaptureResponse = { success: true, markdown: result.content, imageDataUrl };
       sendResponse(response);
     })().catch((err: unknown) => {
       const message = err instanceof Error ? err.message : 'Unexpected error';
@@ -370,7 +414,12 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       const { callMultiTurnChatCompletion } = await import('./apiClient');
       const result = await callMultiTurnChatCompletion(config, apiMessages as any);
 
-      const response = { success: true, markdown: result };
+      // Accumulate token stats
+      if (result.usage) {
+        await updateTokenStats(result.usage);
+      }
+
+      const response = { success: true, markdown: result.content };
       sendResponse(response);
     })().catch((err: unknown) => {
       const message = err instanceof Error ? err.message : 'Unexpected error';
