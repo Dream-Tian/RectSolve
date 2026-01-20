@@ -52,3 +52,22 @@ export interface FollowUpResponse {
 
 export type Message = CaptureRequest | ModelListRequest | FollowUpRequest;
 export type Response = CaptureResponse | ModelListResponse | FollowUpResponse;
+
+export interface CaptureStreamRequest {
+  type: 'CAPTURE_SOLVE_STREAM';
+  rect: Rect;
+  dpr: number;
+  tabId?: number;
+}
+
+export interface FollowUpStreamRequest {
+  type: 'FOLLOW_UP_STREAM';
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  imageDataUrl: string;
+  systemPrompt: string;
+}
+
+export type StreamMessage = CaptureStreamRequest | FollowUpStreamRequest;

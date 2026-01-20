@@ -3,7 +3,7 @@ import { cropScreenshot } from './cropper';
 import { callVisionChatCompletion, callVisionChatCompletionStream, callMultiTurnChatCompletionStream } from './apiClient';
 import type { ChatMessage } from './apiClient';
 import { getConfig } from '@/utils/storage_shared';
-import type { CaptureRequest, CaptureResponse } from '@/types';
+import type { CaptureRequest, CaptureResponse, CaptureStreamRequest, FollowUpStreamRequest } from '@/types';
 
 // Message type guards
 interface CaptureMessage {
@@ -100,7 +100,7 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 // Handle streaming capture solve
-async function handleStreamingCapture(port: chrome.runtime.Port, msg: any) {
+async function handleStreamingCapture(port: chrome.runtime.Port, msg: CaptureStreamRequest) {
   try {
     const { rect, dpr, tabId } = msg;
     if (rect.w <= 0 || rect.h <= 0) {
@@ -152,7 +152,7 @@ async function handleStreamingCapture(port: chrome.runtime.Port, msg: any) {
 }
 
 // Handle streaming follow-up
-async function handleStreamingFollowUp(port: chrome.runtime.Port, msg: any) {
+async function handleStreamingFollowUp(port: chrome.runtime.Port, msg: FollowUpStreamRequest) {
   try {
     const config = await getConfig();
     if (!config?.baseUrl || !config?.apiKey || !config?.defaultModel) {

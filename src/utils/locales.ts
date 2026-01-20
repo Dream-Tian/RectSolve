@@ -42,7 +42,9 @@ export const translations = {
     'done': '完成',
     'follow_uping': '追问中',
     'config_missing': '配置缺失',
-    'config_hint': '请先在设置中配置 API 信息'
+    'config_hint': '请先在设置中配置 API 信息',
+    'error_missing_config': '配置信息缺失',
+    'retry': '重试'
   },
   en: {
     // Sidebar
@@ -87,7 +89,9 @@ export const translations = {
     'done': 'Done',
     'follow_uping': 'Reasoning',
     'config_missing': 'Missing Config',
-    'config_hint': 'Please configure API in settings first'
+    'config_hint': 'Please configure API in settings first',
+    'error_missing_config': 'Configuration Missing',
+    'retry': 'Retry'
   }
 };
 
