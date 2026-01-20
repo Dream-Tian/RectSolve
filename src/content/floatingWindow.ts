@@ -38,9 +38,11 @@ const WINDOW_STYLES = `
   --rs-bg-rgb: 255, 255, 255;
   --rs-opacity: 1;
   --rs-bg: rgba(var(--rs-bg-rgb), var(--rs-opacity));
+  --rs-bg-secondary: #f9fafb;
   --rs-text: #111827;
   --rs-text-secondary: #6b7280;
   --rs-border: #e5e7eb;
+  --rs-border-subtle: #f3f4f6;
   --rs-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --rs-radius: 12px;
   --rs-font: KaiTi, "楷体", STKaiti, serif;
@@ -1286,15 +1288,38 @@ export class FloatingWindow {
   private updateTheme(theme: string) {
       const isDark = theme === 'dark';
       if (isDark) {
-          this.container.style.setProperty('--rs-bg-rgb', '31, 41, 55');
-          this.container.style.setProperty('--rs-text', '#f3f4f6');
-          this.container.style.setProperty('--rs-text-secondary', '#9ca3af');
-          this.container.style.setProperty('--rs-border', '#374151');
+          // Dark Theme Palette - Optimized
+          this.container.style.setProperty('--rs-bg-rgb', '31, 41, 55'); // Gray 800
+          this.container.style.setProperty('--rs-bg-secondary', '#111827'); // Gray 900
+          this.container.style.setProperty('--rs-text', '#f9fafb'); // Gray 50
+          this.container.style.setProperty('--rs-text-secondary', '#d1d5db'); // Gray 300
+          this.container.style.setProperty('--rs-border', '#4b5563'); // Gray 600
+          this.container.style.setProperty('--rs-border-subtle', '#374151'); // Gray 700
+          
+          // Darken scrollbars
+          const styleId = 'rs-dark-scroll-style';
+          let styleFn = this.shadow.getElementById(styleId);
+          if (!styleFn) {
+            styleFn = document.createElement('style');
+            styleFn.id = styleId;
+            styleFn.textContent = `
+              .rs-body::-webkit-scrollbar-track { background: #1f2937; }
+              .rs-body::-webkit-scrollbar-thumb { background: #4b5563; }
+              .rs-body::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+            `;
+            this.shadow.appendChild(styleFn);
+          }
       } else {
+          // Light Theme Palette
           this.container.style.setProperty('--rs-bg-rgb', '255, 255, 255');
+          this.container.style.setProperty('--rs-bg-secondary', '#f9fafb');
           this.container.style.setProperty('--rs-text', '#111827');
           this.container.style.setProperty('--rs-text-secondary', '#6b7280');
           this.container.style.setProperty('--rs-border', '#e5e7eb');
+          this.container.style.setProperty('--rs-border-subtle', '#f3f4f6');
+          
+          const styleFn = this.shadow.getElementById('rs-dark-scroll-style');
+          if (styleFn) styleFn.remove();
       }
   }
 

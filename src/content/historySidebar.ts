@@ -255,28 +255,32 @@ export class HistorySidebar {
         }
 
         /* Dark Mode */
+        /* Dark Mode - Optimized */
         .rectsolve-dark-theme .rectsolve-sidebar {
-            background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1));
-            border-color: #374151;
+            background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)); /* Gray 800 */
+            border-color: #4b5563; /* Gray 600 */
         }
         .rectsolve-dark-theme .sidebar-tabs {
-            border-color: #374151;
+            border-color: #4b5563; /* Gray 600 */
         }
         .rectsolve-dark-theme .sidebar-title {
-            color: #f3f4f6;
+            color: #f9fafb; /* Gray 50 */
         }
         .rectsolve-dark-theme .sidebar-close {
             color: #9ca3af;
         }
         .rectsolve-dark-theme .sidebar-close:hover {
             color: #d1d5db;
-            background: #374151;
+            background: #4b5563;
         }
         .rectsolve-dark-theme .sidebar-tab {
-            color: #9ca3af;
+            color: #d1d5db; /* Gray 300 */
+        }
+        .rectsolve-dark-theme .sidebar-tab:hover {
+            color: #f3f4f6; /* Gray 100 */
         }
         .rectsolve-dark-theme .sidebar-tab.active {
-            color: #60a5fa;
+            color: #60a5fa; /* Blue 400 */
             border-bottom-color: #60a5fa;
         }
 
@@ -306,16 +310,16 @@ export class HistorySidebar {
         }
 
         .rectsolve-dark-theme .history-item {
-            border-color: #374151;
+            border-color: #4b5563; /* Gray 600 */
         }
         .rectsolve-dark-theme .history-item:hover {
-            background: #374151;
+            background: #374151; /* Gray 700 */
         }
         .rectsolve-dark-theme .history-time {
             color: #9ca3af;
         }
         .rectsolve-dark-theme .history-preview {
-            color: #d1d5db;
+            color: #d1d5db; /* Gray 300 */
         }
 
         /* Settings UI Styles - Keeping existing */
@@ -374,25 +378,25 @@ export class HistorySidebar {
         .shortcut-box { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-family: system-ui, -apple-system, sans-serif; font-weight: 500; font-size: 13px; color: #374151; min-width: 100px; text-align: center; background: rgba(255, 255, 255, var(--rs-sidebar-opacity, 1)); display: inline-block; }
         .position-btn.selected, .theme-btn.selected, .lang-btn.selected { background-color: rgba(239, 246, 255, var(--rs-sidebar-opacity, 1)) !important; color: #2563eb !important; border-color: #2563eb !important; }
         .shortcuts-container button:hover { background-color: rgba(243, 244, 246, var(--rs-sidebar-opacity, 1)) !important; }
-        .rectsolve-dark-theme .custom-select-trigger, .rectsolve-dark-theme .custom-select-dropdown { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)); border-color: #4b5563; color: #e5e7eb; }
-        .rectsolve-dark-theme .custom-select-option:hover { background-color: rgba(75, 85, 99, var(--rs-sidebar-opacity, 1)); color: #f3f4f6; }
-        .rectsolve-dark-theme .custom-select-option.selected { background-color: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)); color: #60a5fa; }
-        .rectsolve-dark-theme .rectsolve-sidebar input[type="text"], .rectsolve-dark-theme .rectsolve-sidebar input[type="password"] { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar button { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+        .rectsolve-dark-theme .custom-select-trigger, .rectsolve-dark-theme .custom-select-dropdown { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)); border-color: #4b5563; color: #f9fafb; }
+        .rectsolve-dark-theme .custom-select-option:hover { background-color: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)); color: #f3f4f6; }
+        .rectsolve-dark-theme .custom-select-option.selected { background-color: rgba(17, 24, 39, var(--rs-sidebar-opacity, 1)); color: #60a5fa; }
+        .rectsolve-dark-theme .rectsolve-sidebar input[type="text"], .rectsolve-dark-theme .rectsolve-sidebar input[type="password"] { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #f9fafb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar button { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #f9fafb !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .sidebar-tab, .rectsolve-dark-theme .rectsolve-sidebar .sidebar-close { background: transparent !important; border-color: transparent !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .sidebar-tab.active { border-bottom: 2px solid #60a5fa !important; color: #60a5fa !important; border-color: transparent transparent #60a5fa transparent !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .custom-select-arrow path { fill: #9ca3af !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar .shortcut-box { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
-        .rectsolve-dark-theme .position-btn.selected, .rectsolve-dark-theme .theme-btn.selected, .rectsolve-dark-theme .lang-btn.selected { background-color: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #60a5fa !important; color: #60a5fa !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar .shortcut-box { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #f9fafb !important; }
+        .rectsolve-dark-theme .position-btn.selected, .rectsolve-dark-theme .theme-btn.selected, .rectsolve-dark-theme .lang-btn.selected { background-color: rgba(17, 24, 39, var(--rs-sidebar-opacity, 1)) !important; border-color: #60a5fa !important; color: #60a5fa !important; }
         .rectsolve-dark-theme .shortcuts-container { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar span { color: #9ca3af !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar label { color: #e5e7eb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar span { color: #d1d5db !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar label { color: #f9fafb !important; }
         .rectsolve-dark-theme .rectsolve-sidebar #stats-total { color: #60a5fa !important; }
         .rectsolve-dark-theme .rectsolve-sidebar #stats-today { color: #34d399 !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar #stats-first-use { color: #e5e7eb !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar [style*="background: #f9fafb"] { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar #stats-first-use { color: #f9fafb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar [style*="background: #f9fafb"] { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar [style*="color: #6b7280"] { color: #9ca3af !important; }
-        .rectsolve-dark-theme .rectsolve-sidebar textarea { background: rgba(55, 65, 81, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
+        .rectsolve-dark-theme .rectsolve-sidebar textarea { background: rgba(31, 41, 55, var(--rs-sidebar-opacity, 1)) !important; border-color: #4b5563 !important; color: #f9fafb !important; }
 
         /* Custom Range Slider */
         .custom-range {
