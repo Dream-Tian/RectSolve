@@ -1,7 +1,7 @@
 import { captureVisibleTab } from './capture';
 import { cropScreenshot } from './cropper';
 import { callVisionChatCompletion } from './apiClient';
-import { getConfig } from '@/utils/storage';
+import { getConfig } from '@/utils/storage_shared';
 import type { CaptureRequest, CaptureResponse } from '@/types';
 
 // Message type guards

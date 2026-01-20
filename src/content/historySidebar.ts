@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
   SMART_SELECTION: 'smartSelection',
   SYSTEM_PROMPT: 'systemPrompt',
   RESPONSE_LANGUAGE: 'responseLanguage',
-  UI_OPACITY: 'uiOpacity'
+  UI_OPACITY: 'uiOpacity',
+  HISTORY_LIMIT: 'historyLimit'
 } as const;
 
 // Config cache to reduce storage reads
@@ -24,6 +25,7 @@ let configCache: {
   systemPrompt: string;
   responseLanguage: string;
   uiOpacity: number;
+  historyLimit: number;
 } | null = null;
 
 async function getConfig() {
@@ -40,7 +42,8 @@ async function getConfig() {
     STORAGE_KEYS.SMART_SELECTION,
     STORAGE_KEYS.SYSTEM_PROMPT,
     STORAGE_KEYS.RESPONSE_LANGUAGE,
-    STORAGE_KEYS.UI_OPACITY
+    STORAGE_KEYS.UI_OPACITY,
+    STORAGE_KEYS.HISTORY_LIMIT
   ]);
 
   configCache = {
@@ -52,13 +55,14 @@ async function getConfig() {
     smartSelection: result[STORAGE_KEYS.SMART_SELECTION] !== false,
     systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || '',
     responseLanguage: result[STORAGE_KEYS.RESPONSE_LANGUAGE] || 'zh',
-    uiOpacity: result[STORAGE_KEYS.UI_OPACITY] !== undefined ? result[STORAGE_KEYS.UI_OPACITY] : 1
+    uiOpacity: result[STORAGE_KEYS.UI_OPACITY] !== undefined ? result[STORAGE_KEYS.UI_OPACITY] : 1,
+    historyLimit: result[STORAGE_KEYS.HISTORY_LIMIT] || 20
   };
 
   return configCache;
 }
 
-async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string; responseLanguage?: string; uiOpacity?: number }) {
+async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string; responseLanguage?: string; uiOpacity?: number; historyLimit?: number }) {
   const toSave: Record<string, string | boolean | number> = {};
 
   if (config.baseUrl !== undefined) {
@@ -567,6 +571,24 @@ export class HistorySidebar {
             style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
         </div>
 
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">历史记录数量限制</label>
+          <div class="custom-select" id="settings-history-limit-wrapper">
+             <div class="custom-select-trigger" id="settings-history-limit-trigger">
+               <span id="settings-history-limit-text">20条</span>
+               <svg class="custom-select-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8">
+                 <path fill="#374151" d="M1.41 0L6 4.59 10.59 0 12 1.41l-6 6-6-6z"/>
+               </svg>
+             </div>
+             <div class="custom-select-dropdown" id="settings-history-limit-dropdown">
+               <div class="custom-select-option" data-value="5">5条</div>
+               <div class="custom-select-option" data-value="10">10条</div>
+               <div class="custom-select-option" data-value="20">20条 (推荐)</div>
+               <div class="custom-select-option" data-value="50">50条</div>
+             </div>
+           </div>
+        </div>
+
 
 
        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
@@ -688,6 +710,10 @@ export class HistorySidebar {
     const modelTrigger = body.querySelector('#settings-model-trigger') as HTMLElement;
     const modelText = body.querySelector('#settings-model-text') as HTMLElement;
     const modelDropdown = body.querySelector('#settings-model-dropdown') as HTMLElement;
+    const historyLimitTrigger = body.querySelector('#settings-history-limit-trigger') as HTMLElement;
+    const historyLimitText = body.querySelector('#settings-history-limit-text') as HTMLElement;
+    const historyLimitDropdown = body.querySelector('#settings-history-limit-dropdown') as HTMLElement;
+
     const positionRightBtn = body.querySelector('#position-right') as HTMLButtonElement;
     const positionLeftBtn = body.querySelector('#position-left') as HTMLButtonElement;
     const themeLightBtn = body.querySelector('#theme-light') as HTMLButtonElement;
@@ -777,6 +803,15 @@ export class HistorySidebar {
        this.showSettings(); // Refresh settings UI to show new language
        // Also update the sidebar header
        this.updateStaticText();
+    });
+
+    bindSelect(historyLimitTrigger, historyLimitDropdown, historyLimitText, String(config.historyLimit || 20), async (val) => {
+        const limit = parseInt(val);
+        if(!isNaN(limit)) {
+            // Update text immediately
+            if(historyLimitText) historyLimitText.textContent = `${limit}条`;
+            await saveConfig({ historyLimit: limit });
+        }
     });
 
     // Load and display statistics

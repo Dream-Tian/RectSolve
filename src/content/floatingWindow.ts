@@ -1,6 +1,36 @@
 import { renderMarkdown } from './renderer';
 import { i18n } from '../utils/i18n';
 
+// Inline storage functions to avoid chunk splitting (same as historySidebar.ts)
+const STORAGE_KEYS = {
+  BASE_URL: 'baseUrl',
+  API_KEY: 'apiKey',
+  DEFAULT_MODEL: 'defaultModel',
+  SYSTEM_PROMPT: 'systemPrompt',
+  RESPONSE_LANGUAGE: 'responseLanguage',
+  HISTORY_LIMIT: 'historyLimit'
+} as const;
+
+async function getConfig() {
+  const result = await chrome.storage.sync.get([
+    STORAGE_KEYS.BASE_URL,
+    STORAGE_KEYS.API_KEY,
+    STORAGE_KEYS.DEFAULT_MODEL,
+    STORAGE_KEYS.SYSTEM_PROMPT,
+    STORAGE_KEYS.RESPONSE_LANGUAGE,
+    STORAGE_KEYS.HISTORY_LIMIT
+  ]);
+
+  return {
+    baseUrl: result[STORAGE_KEYS.BASE_URL] || '',
+    apiKey: result[STORAGE_KEYS.API_KEY] || '',
+    defaultModel: result[STORAGE_KEYS.DEFAULT_MODEL] || '',
+    systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || '',
+    responseLanguage: result[STORAGE_KEYS.RESPONSE_LANGUAGE] || 'zh',
+    historyLimit: result[STORAGE_KEYS.HISTORY_LIMIT] || 20
+  };
+}
+
 const WINDOW_STYLES = `
 :host {
   --rs-primary: #2563eb;
@@ -966,8 +996,15 @@ export class FloatingWindow {
         timestamp: Date.now()
       });
       // Keep only last 10 items
-      const trimmed = history.slice(0, 10);
-      await chrome.storage.local.set({ rectsolve_history: JSON.stringify(trimmed) });
+      const config = await getConfig();
+      const limit = config.historyLimit || 20;
+
+      // Keep only last N items
+      if (history.length > limit) {
+         history.length = limit; // Truncate relative cheap
+      }
+      
+      await chrome.storage.local.set({ rectsolve_history: JSON.stringify(history) });
       
       // Update statistics
       await this.updateStats();

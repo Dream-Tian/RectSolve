@@ -1,4 +1,4 @@
-import { getConfig, saveConfig, normalizeBaseUrl } from '@/utils/storage';
+import { getConfig, saveConfig, normalizeBaseUrl } from '@/utils/storage_shared';
 
 const elements = {
   baseUrl: document.getElementById('baseUrl') as HTMLInputElement,
