@@ -474,6 +474,22 @@ const WINDOW_STYLES = `
   cursor: not-allowed;
 }
 
+.rs-retry-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  border: 1px solid var(--rs-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.rs-retry-btn:hover {
+  background: var(--rs-border);
+}
+
 /* Streaming cursor animation */
 .rs-streaming-cursor {
   display: inline;
@@ -1104,7 +1120,7 @@ export class FloatingWindow {
     this.updateStatus('Done');
   }
 
-  public showError(message: string) {
+  public showError(message: string, onRetry?: () => void) {
     const loading = this.shadow.querySelector('.rs-loading');
     const content = this.shadow.querySelector('.rs-content');
     loading?.classList.add('hidden');
@@ -1113,7 +1129,7 @@ export class FloatingWindow {
     // Provide user-friendly error messages
     let friendlyMessage = message;
     if (message.includes('Missing configuration')) {
-      friendlyMessage = '请先在设置中配置 API 信息';
+      friendlyMessage = i18n.t('error_missing_config');
     } else if (message.includes('HTTP 401') || message.includes('Unauthorized')) {
       friendlyMessage = 'API Key 无效，请检查设置';
     } else if (message.includes('HTTP 429')) {
@@ -1135,7 +1151,14 @@ export class FloatingWindow {
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
           <span>${friendlyMessage}</span>
+          ${onRetry ? `<button class="rs-retry-btn">${i18n.t('retry') || 'Retry'}</button>` : ''}
         </div>`;
+      
+      if (onRetry) {
+        const retryBtn = this.contentArea.querySelector('.rs-retry-btn');
+        retryBtn?.addEventListener('click', onRetry);
+        this.eventListeners.push({ element: retryBtn!, event: 'click', handler: onRetry });
+      }
     }
     this.updateStatus("Error");
   }
