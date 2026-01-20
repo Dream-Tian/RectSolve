@@ -35,5 +35,9 @@ export async function cropScreenshot(
 
   ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, outW, outH);
 
-  return canvas.convertToBlob({ type: "image/png" });
+  // Use JPEG with 0.8 quality for better compression
+  return canvas.convertToBlob({ 
+    type: "image/jpeg", 
+    quality: 0.8 
+  });
 }
