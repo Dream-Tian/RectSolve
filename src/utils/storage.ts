@@ -4,22 +4,25 @@ const STORAGE_KEYS = {
   BASE_URL: 'baseUrl',
   API_KEY: 'apiKey',
   DEFAULT_MODEL: 'defaultModel',
-  SYSTEM_PROMPT: 'systemPrompt'
+  SYSTEM_PROMPT: 'systemPrompt',
+  RESPONSE_LANGUAGE: 'responseLanguage'
 } as const;
 
-export async function getConfig(): Promise<Config & { systemPrompt: string }> {
+export async function getConfig(): Promise<Config & { systemPrompt: string; responseLanguage: string }> {
   const result = await chrome.storage.sync.get([
     STORAGE_KEYS.BASE_URL,
     STORAGE_KEYS.API_KEY,
     STORAGE_KEYS.DEFAULT_MODEL,
-    STORAGE_KEYS.SYSTEM_PROMPT
+    STORAGE_KEYS.SYSTEM_PROMPT,
+    STORAGE_KEYS.RESPONSE_LANGUAGE
   ]);
 
   return {
     baseUrl: result[STORAGE_KEYS.BASE_URL] || '',
     apiKey: result[STORAGE_KEYS.API_KEY] || '',
     defaultModel: result[STORAGE_KEYS.DEFAULT_MODEL] || '',
-    systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || ''
+    systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || '',
+    responseLanguage: result[STORAGE_KEYS.RESPONSE_LANGUAGE] || 'zh'
   };
 }
 

@@ -6,7 +6,8 @@ const STORAGE_KEYS = {
   POSITION: 'position',
   THEME: 'theme',
   SMART_SELECTION: 'smartSelection',
-  SYSTEM_PROMPT: 'systemPrompt'
+  SYSTEM_PROMPT: 'systemPrompt',
+  RESPONSE_LANGUAGE: 'responseLanguage'
 } as const;
 
 // Config cache to reduce storage reads
@@ -18,6 +19,7 @@ let configCache: {
   theme: string;
   smartSelection: boolean;
   systemPrompt: string;
+  responseLanguage: string;
 } | null = null;
 
 async function getConfig() {
@@ -32,7 +34,8 @@ async function getConfig() {
     STORAGE_KEYS.POSITION,
     STORAGE_KEYS.THEME,
     STORAGE_KEYS.SMART_SELECTION,
-    STORAGE_KEYS.SYSTEM_PROMPT
+    STORAGE_KEYS.SYSTEM_PROMPT,
+    STORAGE_KEYS.RESPONSE_LANGUAGE
   ]);
 
   configCache = {
@@ -42,13 +45,14 @@ async function getConfig() {
     position: result[STORAGE_KEYS.POSITION] || 'right',
     theme: result[STORAGE_KEYS.THEME] || 'light',
     smartSelection: result[STORAGE_KEYS.SMART_SELECTION] !== false,
-    systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || ''
+    systemPrompt: result[STORAGE_KEYS.SYSTEM_PROMPT] || '',
+    responseLanguage: result[STORAGE_KEYS.RESPONSE_LANGUAGE] || 'zh'
   };
 
   return configCache;
 }
 
-async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string }) {
+async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultModel?: string; position?: string; theme?: string; smartSelection?: boolean; systemPrompt?: string; responseLanguage?: string }) {
   const toSave: Record<string, string | boolean> = {};
 
   if (config.baseUrl !== undefined) {
@@ -71,6 +75,9 @@ async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultMo
   }
   if (config.systemPrompt !== undefined) {
     toSave[STORAGE_KEYS.SYSTEM_PROMPT] = config.systemPrompt;
+  }
+  if (config.responseLanguage !== undefined) {
+    toSave[STORAGE_KEYS.RESPONSE_LANGUAGE] = config.responseLanguage;
   }
 
   await chrome.storage.sync.set(toSave);
@@ -340,7 +347,7 @@ export class HistorySidebar {
         .rectsolve-switch input:focus + .rectsolve-slider { box-shadow: 0 0 1px #2563eb; }
         .rectsolve-switch input:checked + .rectsolve-slider:before { transform: translateX(20px); }
         .shortcut-box { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-family: system-ui, -apple-system, sans-serif; font-weight: 500; font-size: 13px; color: #374151; min-width: 100px; text-align: center; background: #fff; display: inline-block; }
-        .position-btn.selected, .theme-btn.selected { background-color: #eff6ff !important; color: #2563eb !important; border-color: #2563eb !important; }
+        .position-btn.selected, .theme-btn.selected, .lang-btn.selected { background-color: #eff6ff !important; color: #2563eb !important; border-color: #2563eb !important; }
         .shortcuts-container button:hover { background-color: #f3f4f6 !important; }
         .rectsolve-dark-theme .custom-select-trigger, .rectsolve-dark-theme .custom-select-dropdown { background: #374151; border-color: #4b5563; color: #e5e7eb; }
         .rectsolve-dark-theme .custom-select-option:hover { background-color: #4b5563; color: #f3f4f6; }
@@ -351,7 +358,7 @@ export class HistorySidebar {
         .rectsolve-dark-theme .rectsolve-sidebar .sidebar-tab.active { border-bottom: 2px solid #60a5fa !important; color: #60a5fa !important; border-color: transparent transparent #60a5fa transparent !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .custom-select-arrow path { fill: #9ca3af !important; }
         .rectsolve-dark-theme .rectsolve-sidebar .shortcut-box { background: #374151 !important; border-color: #4b5563 !important; color: #e5e7eb !important; }
-        .rectsolve-dark-theme .position-btn.selected, .rectsolve-dark-theme .theme-btn.selected { background-color: #1f2937 !important; border-color: #60a5fa !important; color: #60a5fa !important; }
+        .rectsolve-dark-theme .position-btn.selected, .rectsolve-dark-theme .theme-btn.selected, .rectsolve-dark-theme .lang-btn.selected { background-color: #1f2937 !important; border-color: #60a5fa !important; color: #60a5fa !important; }
         .rectsolve-dark-theme .shortcuts-container { background: #1f2937 !important; border-color: #4b5563 !important; }
         .rectsolve-dark-theme .rectsolve-sidebar span { color: #9ca3af !important; }
         .rectsolve-dark-theme .rectsolve-sidebar label { color: #e5e7eb !important; }
@@ -471,6 +478,18 @@ export class HistorySidebar {
             style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
         </div>
 
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; text-align: left;">回答语言</label>
+          <div style="display: flex; gap: 8px;">
+            <button id="lang-zh" class="lang-btn" style="flex: 1; padding: 8px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.2s;">
+              中文
+            </button>
+            <button id="lang-en" class="lang-btn" style="flex: 1; padding: 8px; background: white; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.2s;">
+              English
+            </button>
+          </div>
+        </div>
+
        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
           <label style="font-weight: 600; font-size: 15px;">启用智能框选</label>
            <label class="rectsolve-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
@@ -581,6 +600,32 @@ export class HistorySidebar {
       systemPromptTextarea.value = config.systemPrompt || '';
       this.addEventListener(systemPromptTextarea, 'blur', async () => {
         await saveConfig({ systemPrompt: systemPromptTextarea.value.trim() });
+      });
+    }
+
+    // Language selector
+    const langZhBtn = body.querySelector('#lang-zh') as HTMLButtonElement;
+    const langEnBtn = body.querySelector('#lang-en') as HTMLButtonElement;
+    let selectedLanguage = config.responseLanguage || 'zh';
+
+    const updateLanguageButtons = () => {
+      langZhBtn?.classList.toggle('selected', selectedLanguage === 'zh');
+      langEnBtn?.classList.toggle('selected', selectedLanguage === 'en');
+    };
+    updateLanguageButtons();
+
+    if (langZhBtn) {
+      this.addEventListener(langZhBtn, 'click', async () => {
+        selectedLanguage = 'zh';
+        updateLanguageButtons();
+        await saveConfig({ responseLanguage: 'zh' });
+      });
+    }
+    if (langEnBtn) {
+      this.addEventListener(langEnBtn, 'click', async () => {
+        selectedLanguage = 'en';
+        updateLanguageButtons();
+        await saveConfig({ responseLanguage: 'en' });
       });
     }
 

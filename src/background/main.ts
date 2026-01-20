@@ -306,7 +306,11 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
 
       const croppedBlob = await cropScreenshot(dataUrl, rect, dpr);
       const imageDataUrl = await blobToDataUrl(croppedBlob);
-      const prompt = config.systemPrompt?.trim() || DEFAULT_PROMPT;
+      const basePrompt = config.systemPrompt?.trim() || DEFAULT_PROMPT;
+      const langInstruction = config.responseLanguage === 'en' 
+        ? ' Please respond in English.' 
+        : ' 请用中文回答。';
+      const prompt = basePrompt + langInstruction;
       const result = await callVisionChatCompletion(config, imageDataUrl, prompt);
 
       const response: CaptureResponse = { success: true, markdown: result, imageDataUrl };
