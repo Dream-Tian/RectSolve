@@ -960,7 +960,7 @@ export class FloatingWindow {
     } else if (text === '追问中...') {
       displayText = i18n.t('follow_uping');
       shouldAnimate = true;
-    } else if (text === 'Done' || text === 'Done') {
+    } else if (text === 'Done') {
       displayText = i18n.t('done');
     } else if (text === 'Error') {
       displayText = i18n.t('error');

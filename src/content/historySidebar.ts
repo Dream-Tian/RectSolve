@@ -92,6 +92,9 @@ async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultMo
   if (config.uiOpacity !== undefined) {
     toSave[STORAGE_KEYS.UI_OPACITY] = config.uiOpacity;
   }
+  if (config.historyLimit !== undefined) {
+    toSave[STORAGE_KEYS.HISTORY_LIMIT] = config.historyLimit;
+  }
 
   await chrome.storage.sync.set(toSave);
 
@@ -101,10 +104,18 @@ async function saveConfig(config: { baseUrl?: string; apiKey?: string; defaultMo
 
 // Helper to normalize Base URL
 function normalizeBaseUrl(url: string): string {
-  let normalized = url.trim().replace(/\/+$/, '');
-  if (!normalized.startsWith('http')) {
+  let normalized = url.trim();
+
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
     normalized = 'https://' + normalized;
   }
+
+  normalized = normalized.replace(/\/+$/, '');
+
+  if (!normalized.endsWith('/v1')) {
+    normalized += '/v1';
+  }
+
   return normalized;
 }
 
