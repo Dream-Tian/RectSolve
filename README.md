@@ -144,4 +144,4 @@ npm test            # Vitest 单元测试
 
 ## 许可证
 
-本项目基于 [MIT License](LICENSE) 开源，Copyright (c) 2026 CelesteTian。
+本项目基于 [MIT License](LICENSE) 开源，Copyright (c) 2026 Dream-Tian。
