@@ -2,6 +2,7 @@
   "name": "rect-solve",
   "version": "1.0.0",
   "description": "Browser extension for AI-powered question solving with area selection",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",

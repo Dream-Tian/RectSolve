@@ -10,3 +10,7 @@ dist/
 .claude/
 .VSCodeCounter
 test.html
+
+# 本地环境与覆盖率
+.env
+coverage/
